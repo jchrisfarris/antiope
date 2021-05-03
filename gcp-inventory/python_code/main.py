@@ -4,7 +4,7 @@ from google.cloud import asset_v1
 
 # To Do: Filter for desired resources via asset_type
 
-def get_all_resources():
+def main():
     """Prints out all resources within all projects based on access permissions"""
     # Get projects
     rmclient = resource_manager.Client()
@@ -29,4 +29,4 @@ def get_all_resources():
         #   }
     #
 
-get_all_resources()
+main()

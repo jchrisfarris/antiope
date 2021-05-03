@@ -40,6 +40,23 @@ This stack creates the (optional) Amazon Elastic Search cluster for searching th
 
 ## GCP Inventory Stack
 Currently a work-in-progress, this stack replicates the aws-inventory stack functionality for GCP Projects.
+# 5-2-2021
+The function created in gcp-inventory creates a cloud function which is triggered manually via a topic. 
+This will get all resources that the service account applied to it has access to. Using the default app engine
+service account will grant access to all resources in that project. Running the function in the cloud shell
+will show all resources accross projects if the user has total access. Running the function in cloud shell 
+requires running pip install for the packages in requirements.txt file.
+Requirements:
+  - Local authentication to your google cloud project for local terraform deployment
+  - App engine enabled for that project with the service account used as a reference
+  - Apply from the terraform-modules folder
+To Do:
+  - Change output from printed json
+  - Setup cron job as a trigger
+  - Create a module and a reference
+  - Apply best security practices to bucket, python code and terraform code
+  - Create example invocation of module
+  - Setup splunk
 
 ## Compliance Stack
 This will be a future addition to Antiope where Turner open-sources the Cloud Security Scorecards we've built for creating executive and technical owner visibility into security issues in each account.
