@@ -26,7 +26,7 @@ resource "google_storage_bucket" "bucket" {
 
 data "archive_file" "src" {
   type        = "zip"
-  source_dir  = "../python_code" # Directory where your Python source code is
+  source_dir  = "../python_code"
   output_path = "../generated/src.zip"
 }
 

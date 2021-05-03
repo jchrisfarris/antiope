@@ -57,6 +57,7 @@ To Do:
   - Apply best security practices to bucket, python code and terraform code
   - Create example invocation of module
   - Setup splunk
+  - Setup pipeline for deployment
 
 ## Compliance Stack
 This will be a future addition to Antiope where Turner open-sources the Cloud Security Scorecards we've built for creating executive and technical owner visibility into security issues in each account.
