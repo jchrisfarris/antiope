@@ -1,9 +1,4 @@
-output "bucket_name" {
-    value = google_storage_bucket.bucket.name
-    description = "The name of the bucket"
-}
-
-output "google_storage_bucket_object_name" {
-    value = google_storage_bucket_object.archive.name
-    description = "The name of the object object"
+output "google_storage_bucket_name" {
+    value = google_storage_bucket.code_source.name
+    description = "The name of the bucket containing the source code"
 }

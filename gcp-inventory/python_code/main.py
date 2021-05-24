@@ -1,23 +1,18 @@
-from pprint import pprint
-from google.cloud import resource_manager
 from google.cloud import asset_v1
+import logging
+import os
 
-# To Do: Filter for desired resources via asset_type
-
-def main():
+def main(event, data):
     """Prints out all resources within all projects based on access permissions"""
-    # Get projects
-    rmclient = resource_manager.Client()
+    # Get All Resources Insied Passed Organization
     asclient = asset_v1.AssetServiceClient()
-    for project in rmclient.list_projects():
-        current_project = project.project_id
-        # Get all resources in each project
-        response = asclient.search_all_resources(
-            request={
-                "scope": f"projects/{current_project}",
-            }
-        )
-        pprint(response)
+    organization_to_query = os.environ.get('ORGANIZATION', 'Specified environment variable is not set.')
+    response = asclient.search_all_resources(
+        request={
+            "scope": f"organizations/{organization_to_query}",
+        }
+    )
+    logging.info(f"Response for query against {response}")
 
     # Ex. output : 
         #    results {
@@ -29,4 +24,6 @@ def main():
         #   }
     #
 
-main()
+def parse_all_resources(data):
+    # To Do: Parse of data
+    pass

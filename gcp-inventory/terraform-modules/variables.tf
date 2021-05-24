@@ -4,8 +4,20 @@ variable "project" {
   default     = "antiope"
 }
 
-variable "bucket_name" {
-  description = "Name of bucket"
+variable "organization" {
+  description = "Name of the organization"
+  type        = string
+}
+
+variable "cron" {
+  description = "Cron schedule for the antope function"
+  type        = string
+  # Default is once every hour
+  default     = "0 * * * *"
+}
+
+variable "archive_bucket_name" {
+  description = "Name of bucket containing cloud function zip"
   type        = string
   default     = "code-bucket"
 }
@@ -25,16 +37,27 @@ variable "topic_name" {
 variable "env" {
   description = "Name of the environment"
   type        = string
-  default     = "sandbox"
 }
 
 variable "services" {
   description = "Services to be enabled"
   type        = list
-  default     = ["cloudbuild.googleapis.com", "cloudfunctions.googleapis.com", "cloudresourcemanager.googleapis.com", "cloudasset.googleapis.com"]
+  default     = ["cloudbuild.googleapis.com", "cloudfunctions.googleapis.com", "cloudresourcemanager.googleapis.com", "cloudasset.googleapis.com", "cloudscheduler.googleapis.com", "pubsub.googleapis.com"]
 }
 
-variable "associated_service_account" {
-  description = "Name of the app engine service account"
+variable "app_engine_location" {
+  description = "App engine location"
+  type        = string
+  default     = "us-central"
+}
+
+variable "cloud_scheduler_location" {
+  description = "Cloud scheduler location. Should be in same location as app engine"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "code_location" {
+  description = "Location for python code"
   type        = string
 }

@@ -39,7 +39,7 @@ This stack creates the Lambda, DynamoDB, StepFunctions, and associated glue requ
 This stack creates the (optional) Amazon Elastic Search cluster for searching the resource objects gathered by the inventory stack. This stack also creates the pipeline for SQS & Lambda to detect when new objects are added to the bucket and make sure those objects are indexed.
 
 ## GCP Inventory Stack
-Currently a work-in-progress, this stack replicates the aws-inventory stack functionality for GCP Projects.
+Currently a work-in-progress, this stack replicates the aws-inventory stack functionality for GCP Projects. The code in gcp-inventory will currently create a project containing the antiope function and pub/sub trigger for that function that runs every hour. Output of the function made visible with logging module.
 # 5-2-2021
 The function created in gcp-inventory creates a cloud function which is triggered manually via a topic. 
 This will get all resources that the service account applied to it has access to. Using the default app engine
