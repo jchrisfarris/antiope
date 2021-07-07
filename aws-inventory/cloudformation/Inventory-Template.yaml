@@ -202,6 +202,15 @@ Resources:
               - dynamodb:UpdateItem
             Resource:
               - !GetAtt AccountDBTable.StreamArn
+      - PolicyName: LocalMacie
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - macie2:*
+            Resource: '*'
+
 
   #
   # State Machine Functions
@@ -845,6 +854,20 @@ Resources:
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
 
+  MacieFindingReportLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-macie-report"
+      Description: Generate CSV of all Macie Findings
+      Handler: report-macie-findings.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      CodeUri: ../lambda
+      Timeout: 900
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerAccountInventoryFunctionTopic
 
   #
   # Parallel Execution Functions (on each PAYER)
@@ -1193,11 +1216,11 @@ Resources:
                   [ "...", "${pResourcePrefix}-ia2-analyzer-inventory", { "stat": "Sum", "period": 604800, "label": "ia2-analyzer-inventory" } ],
                   [ "...", "${pResourcePrefix}-ia2-org-findings", { "stat": "Sum", "period": 604800, "label": "ia2-org-findings" } ],
                   [ "...", "${pResourcePrefix}-costexplorer", { "stat": "Sum", "period": 604800, "label": "costexplorer" } ],
-
                   [ "...", "${pResourcePrefix}-iam-inventory", { "stat": "Sum", "period": 604800, "label": "iam-inventory" } ],
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 604800, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
+                  [ "...", "${pResourcePrefix}-macie-report", { "stat": "Sum", "period": 604800, "label": "macie-report" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1260,6 +1283,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 604800, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
+                  [ "...", "${pResourcePrefix}-macie-report", { "stat": "Sum", "period": 604800, "label": "macie-report" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1322,6 +1346,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 900, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 900, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 900, "label": "lambdas-inventory" } ],
+                  [ "...", "${pResourcePrefix}-macie-report", { "stat": "Sum", "period": 604800, "label": "macie-report" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 900, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 900, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 900, "label": "route53-inventory" } ],
