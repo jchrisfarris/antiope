@@ -182,3 +182,7 @@ ENV/
 
 # End of https://www.gitignore.io/api/osx,python
 
+# Ignore all state files
+*.tfstate*
+.terraform
+.terraform.lock.hcl
