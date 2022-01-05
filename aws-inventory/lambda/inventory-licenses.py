@@ -1,0 +1,89 @@
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import boto3
+from botocore.exceptions import ClientError
+import json
+import os
+import time
+from datetime import datetime, timezone
+from dateutil import tz
+
+from antiope.aws_account import *
+from common import *
+
+import logging
+logger = logging.getLogger()
+logger.setLevel(getattr(logging, os.getenv('LOG_LEVEL', default='INFO')))
+logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger('boto3').setLevel(logging.WARNING)
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+RESOURCE_PATH = "licensemanager/license"
+RESOURCE_TYPE = "AWS::LicenseManager::License"
+# AWS::LicenseManager::Grant
+
+
+def lambda_handler(event, context):
+    logger.debug("Received event: " + json.dumps(event, sort_keys=True))
+    message = json.loads(event['Records'][0]['Sns']['Message'])
+    logger.info("Received message: " + json.dumps(message, sort_keys=True))
+
+    try:
+        target_account = AWSAccount(message['account_id'])
+        client = target_account.get_client('license-manager')
+        response = client.list_received_licenses()
+        for l in response['Licenses']:
+            save_license(target_account, l)
+        while 'NextToken' in response:
+            response = client.list_received_licenses(NextToken=response['NextToken'])
+            for l in response['Licenses']:
+                save_license(target_account, l)
+
+    except AntiopeAssumeRoleError as e:
+        logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
+        return()
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'UnauthorizedOperation':
+            logger.error("Antiope doesn't have proper permissions to this account")
+            return(event)
+        if e.response['Error']['Code'] == 'AccessDeniedException':
+            logger.error(f"AccessDeniedException in function {context.function_name} for {target_account.account_name}({target_account.account_id})")
+            return(event)
+        logger.critical("AWS Error getting info for {}: {}".format(message['account_id'], e))
+        capture_error(message, context, e, "ClientError for {}: {}".format(message['account_id'], e))
+        raise
+    except Exception as e:
+        logger.critical("{}\nMessage: {}\nContext: {}".format(e, message, vars(context)))
+        capture_error(message, context, e, "General Exception for {}: {}".format(message['account_id'], e))
+        raise
+
+
+def save_license(target_account, license):
+    '''Save the data foreach license'''
+
+    resource_item = {}
+    resource_item['awsAccountId']                   = target_account.account_id
+    resource_item['awsAccountName']                 = target_account.account_name
+    resource_item['resourceType']                   = RESOURCE_TYPE
+    resource_item['source']                         = "Antiope"
+
+    resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
+    resource_item['configuration']                  = license
+    resource_item['supplementaryConfiguration']     = {}
+    resource_item['resourceId']                     = license['LicenseArn'].split(':')[-1]  # Arns end in l-<unique-identifier>
+    resource_item['resourceName']                   = license['LicenseName']
+    resource_item['errors']                         = {}
+
+    save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
