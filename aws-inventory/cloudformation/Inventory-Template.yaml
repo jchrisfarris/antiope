@@ -918,8 +918,22 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${pResourcePrefix}-vault-inventory"
-      Description: Discovery AWS Backup Vaults
+      Description: Discover AWS Backup Vaults
       Handler: inventory-vault.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      CodeUri: ../lambda
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerAccountInventoryFunctionTopic
+
+  LicenseInventoryLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-license-inventory"
+      Description: Inventory Licenses from License Manager
+      Handler: inventory-licenses.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
       CodeUri: ../lambda
       Events:
@@ -1282,6 +1296,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 604800, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
+                  [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1295,6 +1310,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-trigger-inventory", { "stat": "Sum", "period": 604800, "label": "trigger-inventory" } ],
                   [ "...", "${pResourcePrefix}-vpc-inventory", { "stat": "Sum", "period": 604800, "label": "vpc-inventory" } ],
                   [ "...", "${pResourcePrefix}-transit-gw-inventory", { "stat": "Sum", "period": 604800, "label": "transit-gateway-inventory" } ],
+                  [ "...", "${pResourcePrefix}-vault-inventory", { "stat": "Sum", "period": 604800, "label": "vault-inventory" } ],
                   [ "...", "${pResourcePrefix}-waf-inventory", { "stat": "Sum", "period": 604800, "label": "waf-inventory" } ],
                   [ "...", "${pResourcePrefix}-wafv1-inventory", { "stat": "Sum", "period": 604800, "label": "wafv1-inventory" } ],
                   [ "...", "${pResourcePrefix}-worklink-inventory", { "stat": "Sum", "period": 604800, "label": "worklink-inventory" } ],
@@ -1348,6 +1364,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 604800, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
+                  [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1361,6 +1378,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-trigger-inventory", { "stat": "Sum", "period": 604800, "label": "trigger-inventory" } ],
                   [ "...", "${pResourcePrefix}-vpc-inventory", { "stat": "Sum", "period": 604800, "label": "vpc-inventory" } ],
                   [ "...", "${pResourcePrefix}-transit-gw-inventory", { "stat": "Sum", "period": 604800, "label": "transit-gateway-inventory" } ],
+                  [ "...", "${pResourcePrefix}-vault-inventory", { "stat": "Sum", "period": 604800, "label": "vault-inventory" } ],
                   [ "...", "${pResourcePrefix}-waf-inventory", { "stat": "Sum", "period": 604800, "label": "waf-inventory" } ],
                   [ "...", "${pResourcePrefix}-wafv1-inventory", { "stat": "Sum", "period": 604800, "label": "wafv1-inventory" } ],
                   [ "...", "${pResourcePrefix}-worklink-inventory", { "stat": "Sum", "period": 604800, "label": "worklink-inventory" } ],
@@ -1414,6 +1432,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Maximum", "period": 60, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Maximum", "period": 60, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Maximum", "period": 60, "label": "lambdas-inventory" } ],
+                  [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Maximum", "period": 60, "label": "license-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Maximum", "period": 60, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Maximum", "period": 60, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Maximum", "period": 60, "label": "route53-inventory" } ],
@@ -1426,6 +1445,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-trigger-inventory", { "stat": "Maximum", "period": 60, "label": "trigger-inventory" } ],
                   [ "...", "${pResourcePrefix}-vpc-inventory", { "stat": "Maximum", "period": 60, "label": "vpc-inventory" } ],
                   [ "...", "${pResourcePrefix}-transit-gw-inventory", { "stat": "Maximum", "period": 60, "label": "transit-gateway-inventory" } ],
+                  [ "...", "${pResourcePrefix}-vault-inventory", { "stat": "Maximum", "period": 60, "label": "vault-inventory" } ],
                   [ "...", "${pResourcePrefix}-waf-inventory", { "stat": "Maximum", "period": 60, "label": "waf-inventory" } ],
                   [ "...", "${pResourcePrefix}-wafv1-inventory", { "stat": "Maximum", "period": 60, "label": "wafv1-inventory" } ],
                   [ "...", "${pResourcePrefix}-worklink-inventory", { "stat": "Maximum", "period": 60, "label": "worklink-inventory" } ],
