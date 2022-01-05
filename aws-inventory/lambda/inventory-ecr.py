@@ -110,4 +110,13 @@ def process_repo(client, repo, target_account, region):
         else:
             raise
 
+    resource_item['supplementaryConfiguration']['Images'] = []
+    response = client.list_images(repositoryName=repo['repositoryName'])
+    resource_item['supplementaryConfiguration']['Images'] += response['imageIds']
+    while 'nextToken' in response:
+        response = client.list_images(repositoryName=repo['repositoryName'], nextToken=response['nextToken'])
+        resource_item['supplementaryConfiguration']['Images'] += response['imageIds']
+
+    resource_item['supplementaryConfiguration']['ImageCount'] = len(resource_item['supplementaryConfiguration']['Images'])
+
     save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
