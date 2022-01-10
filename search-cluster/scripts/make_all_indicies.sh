@@ -61,6 +61,7 @@ INDICES="	resources_accessanalyzer_analyzer
 			resources_kms_key
 			resources_lambda_function
 			resources_lambda_layer
+			resources_licensemanager_license
 			resources_rds_dbcluster
 			resources_rds_dbinstance
 			resources_redshift_clusters

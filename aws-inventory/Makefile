@@ -62,6 +62,7 @@ FUNCTIONS = $(RESOURCE_PREFIX)-pull-organization-data \
 			$(RESOURCE_PREFIX)-instances-sg-inventory \
 			$(RESOURCE_PREFIX)-kms-inventory \
 			$(RESOURCE_PREFIX)-lambdas-inventory \
+			$(RESOURCE_PREFIX)-license-inventory \
 			$(RESOURCE_PREFIX)-new_account_handler \
 			$(RESOURCE_PREFIX)-payer-costexplorer \
 			$(RESOURCE_PREFIX)-rds-inventory \

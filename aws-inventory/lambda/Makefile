@@ -47,6 +47,7 @@ FILES =	common.py\
 		inventory-instances-sg.py \
 		inventory-kms.py \
 		inventory-lambdas.py \
+		inventory-licenses.py \
 		inventory-redshift.py \
 		inventory-rds.py \
 		inventory-route53.py \
