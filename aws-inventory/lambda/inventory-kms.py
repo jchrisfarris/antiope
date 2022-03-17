@@ -213,7 +213,7 @@ def get_key_aliases(client, key_arn):
         aliases += response['Aliases']
         response = client.list_aliases(KeyId=key_arn, Marker=response['NextMarker'])
     aliases += response['Aliases']
-    return map(lambda x: x['AliasName'], aliases)
+    return aliases
 
 
 def get_key_policy(client, key_arn, policies):
