@@ -19,6 +19,7 @@ import os
 import time
 from datetime import datetime, timezone, date
 from dateutil import tz
+from datetime import datetime as dt
 
 from antiope.aws_account import *
 from antiope.config import *
@@ -44,7 +45,7 @@ def lambda_handler(event, context):
 
         today = date.today()
         start_of_this_month = today.replace(day=1)
-        end_of_last_month = start_of_this_month - datetime.timedelta(days=1)
+        end_of_last_month = start_of_this_month - dt.timedelta(days=1)
         start_of_last_month = end_of_last_month.replace(day=1)
 
         logger.debug(f"Today {today} - Start of Month: {start_of_this_month} - End of Last Month: {end_of_last_month} - Start of Last Month: {start_of_last_month}")
