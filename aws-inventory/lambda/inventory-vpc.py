@@ -153,6 +153,10 @@ def discover_vpcs(target_account, region):
         ddb_item['instance_states'] = query_instances(ec2_client, v['VpcId'])
         resource_item['supplementaryConfiguration']['InstanceStates'] = ddb_item['instance_states']
 
+        # Also capture ENIs
+        ddb_item['interface_types'] = query_eni(ec2_client, v['VpcId'])
+        resource_item['supplementaryConfiguration']['NetworkInterfaces'] = ddb_item['interface_types']
+
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
         logger.info("Discovered VPC ({}) in {}\nData: {}".format(v['VpcId'], target_account.account_id, json.dumps(ddb_item, sort_keys=True)))
         try:
@@ -310,3 +314,37 @@ def query_instances(ec2_client, vpc_id, instance_state = None):
             state = i['State']['Name']
             state_count[state] += 1
     return(state_count)
+
+
+def query_eni(ec2_client, vpc_id):
+    '''return an array of dict representing the data from describe_instances()'''
+
+    interface_types = {
+        "total": 0
+    }
+    filters = [{'Name': 'vpc-id', 'Values': [vpc_id]}]
+
+    enis = []
+    response = ec2_client.describe_network_interfaces(
+        Filters = filters,
+        MaxResults = 1000
+    )
+    while 'NextToken' in response:
+        enis += response['NetworkInterfaces']
+        response = ec2_client.describe_network_interfaces(
+            Filters = filters,
+            MaxResults = 1000,
+            NextToken = response['NextToken']
+        )
+    # Done with the while loop (or never entered it) do the last batch
+    enis += response['NetworkInterfaces']
+
+    # Now process types
+    for eni in enis:
+        if eni['InterfaceType'] not in interface_types:
+            interface_types[eni['InterfaceType']] = 0
+        interface_types[eni['InterfaceType']] += 1
+        interface_types['total'] += 1
+
+    return(interface_types)
+
