@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ def discover_saml_provider(account):
         resource_item['resourceCreationTime']           = idp['CreateDate']
         resource_item['errors']                         = {}
 
-        response = iam_client.list_saml_provider_tags(RoleName=idp['Arn'])
+        response = iam_client.list_saml_provider_tags(SAMLProviderArn=idp['Arn'])
         tags = parse_tags(response['Tags'])
         if tags is not None and len(tags) != 0:
             resource_item['errors']['no_tags'] = True

@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,11 @@ def discover_storage_gateways(target_account, region):
             "resourceCreationTime":         sgw.get("DateCreated", None), # Does not exist
             "errors":                       {}
         }
-    
+        tags = parse_tags(sgw['Tags'])
+        if tags is not None:
+            resource_item['tags'] = tags
+        else:
+            resource_item['errors']['no_tags'] = True
 
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 

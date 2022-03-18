@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -101,12 +101,17 @@ def discover_rds(account, region):
         resource_item['errors']                         = {}
 
         try:
-            tags = rds_client.list_tags_for_resource(ResourceName=name)
-            resource_item['tags'] = parse_tags(tags['TagList'])
-        except (ClientError, KeyError, IndexError):
-            pass  # If Tags aren't present or whatever, just ignore
+            tags = rds_client.list_tags_for_resource(ResourceName=rds['DBInstanceArn'])
+            if len(tags['TagList']) == 0:
+                resource_item['errors']['no_tags'] = True
+            else:
+                resource_item['tags'] = parse_tags(tags['TagList'])
+        except (ClientError, KeyError, IndexError) as e:
+            logger.error(f"Failed to get tags for {account.account_id}-{region}-{rds['DBInstanceIdentifier']}: {e}")
+            resource_item['errors']['no_tags'] = True
 
         save_resource_to_s3(RDS_RESOURCE_PATH, resource_item['resourceId'], resource_item)
+
 
 def discover_aurora(account, region):
     '''Discover all Database Instances (RDS)'''
@@ -139,9 +144,13 @@ def discover_aurora(account, region):
         resource_item['errors']                         = {}
 
         try:
-            tags = rds_client.list_tags_for_resource(ResourceName=name)
-            resource_item['tags'] = parse_tags(tags['TagList'])
-        except (ClientError, KeyError, IndexError):
-            pass  # If Tags aren't present or whatever, just ignore
+            tags = rds_client.list_tags_for_resource(ResourceName=rds['DBClusterArn'])
+            if len(tags['TagList']) == 0:
+                resource_item['errors']['no_tags'] = True
+            else:
+                resource_item['tags'] = parse_tags(tags['TagList'])
+        except (ClientError, KeyError, IndexError) as e:
+            logger.error(f"Failed to get tags for {account.account_id}-{region}-{rds['DBClusterIdentifier']}: {e}")
+            resource_item['errors']['no_tags'] = True
 
         save_resource_to_s3(AURORA_RESOURCE_PATH, resource_item['resourceId'], resource_item)

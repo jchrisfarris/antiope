@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -96,6 +96,19 @@ def discover_elastic_beanstalk_applications(target_account:str, region:str):
             "errors":                       {}
         }
 
+        try:
+            response = client.list_tags_for_resource(ResourceArn=app.get("ApplicationArn"))
+            tags = parse_tags(response['ResourceTags'])
+            if tags is not None:
+                resource_item['tags'] = tags
+            else:
+                resource_item['errors']['no_tags'] = True
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                resource_item['errors']['no_tags'] = True
+            else:
+                raise
+
         save_resource_to_s3(APPLICATION_RESOURCE_PATH, resource_item.get("resourceId"), resource_item)
 
 
@@ -106,7 +119,7 @@ def discover_elastic_beanstalk_environments(target_account:str, region:str):
         envs = eb.describe_environments() # Returns all items no pagination
     except ClientError as error:
         logger.error(f"Elastic Beanstalk Describe Environments Error: {error}")
-        return 
+        return
     for env in envs.get("Environments"):
         resource_item = {
             "awsAccountId":                 target_account.account_id,
@@ -122,5 +135,18 @@ def discover_elastic_beanstalk_environments(target_account:str, region:str):
             "resourceCreationTime":         env.get("DateCreated"),
             "errors":                       {}
         }
+
+        try:
+            response = client.list_tags_for_resource(ResourceArn=app.get("ApplicationArn"))
+            tags = parse_tags(response['ResourceTags'])
+            if tags is not None:
+                resource_item['tags'] = tags
+            else:
+                resource_item['errors']['no_tags'] = True
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                resource_item['errors']['no_tags'] = True
+            else:
+                raise
 
         save_resource_to_s3(ENVIRONMENT_RESOURCE_PATH, resource_item.get("resourceId"), resource_item)

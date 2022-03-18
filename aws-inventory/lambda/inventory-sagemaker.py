@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,9 +104,12 @@ def discover_notebooks(account, region):
 
         try:
             tags = client.list_tags(ResourceArn=details['NotebookInstanceArn'])
-            resource_item['tags'] = parse_tags(tags['Tags'])
+            if 'Tags' not in tags or len(tags['Tags']) == 0:
+                resource_item['errors']['no_tags'] = True
+            else:
+                resource_item['tags'] = parse_tags(tags['Tags'])
         except (ClientError, KeyError, IndexError):
-            pass  # If Tags aren't present or whatever, just ignore
+            resource_item['errors']['no_tags'] = True
 
         save_resource_to_s3(NOTBOOK_RESOURCE_PATH, resource_item['resourceId'], resource_item)
 

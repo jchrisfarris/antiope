@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,6 +67,12 @@ def lambda_handler(event, context):
             resource_item['ARN']                            = distribution['ARN']
             resource_item['errors']                         = {}
 
+            tags = get_tags(cf_client, distribution['ARN'])
+            if tags is not None and len(tags) != 0:
+                resource_item['tags'] = tags
+            else:
+                resource_item['errors']['no_tags'] = True
+
             save_resource_to_s3(RESOURCE_PATH, distribution['Id'], resource_item)
 
     except AntiopeAssumeRoleError as e:
@@ -80,6 +86,16 @@ def lambda_handler(event, context):
         logger.critical("{}\nMessage: {}\nContext: {}".format(e, message, vars(context)))
         capture_error(message, context, e, "General Exception for {}: {}".format(message['account_id'], e))
         raise
+
+
+def get_tags(client, resource_arn):
+    try:
+        response = client.list_tags_for_resource(Resource=resource_arn)
+        tags = parse_tags(response['Tags']['Items'])
+        return(tags)
+    except ClientError as e:
+        logger.error(f"Error getting tags for {resource_arn}: {e}")
+        return(None)
 
 
 def list_distributions(cf_client, target_account):

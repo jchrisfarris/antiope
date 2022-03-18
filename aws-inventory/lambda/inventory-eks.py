@@ -1,4 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +52,6 @@ def lambda_handler(event, context):
                 else:
                     raise  # pass on to the next handlier
 
-
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
         return()
@@ -66,6 +66,15 @@ def lambda_handler(event, context):
         logger.critical("{}\nMessage: {}\nContext: {}".format(e, message, vars(context)))
         capture_error(message, context, e, "General Exception for {}: {}".format(message['account_id'], e))
         raise
+
+
+def get_tags(client, resource_arn):
+    try:
+        response = client.list_tags_for_resource(resourceArn=resource_arn)
+        return(response['tags'])
+    except ClientError as e:
+        logger.error(f"Error getting tags for {resource_arn}: {e}")
+        return(None)
 
 
 def discover_eks_clusters(account, region):
@@ -95,5 +104,12 @@ def discover_eks_clusters(account, region):
             "resourceCreationTime":         eks_cluster.get("createdAt"),
             "errors":                       {}
         }
+
+        tags = get_tags(eks_client, eks_cluster.get("arn"))
+        if tags is not None and len(tags) != 0:
+            resource_item['errors']['no_tags'] = True
+        else:
+            resource_item['tags'] = tags
+
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 
