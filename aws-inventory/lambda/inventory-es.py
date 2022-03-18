@@ -1,4 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +34,13 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 RESOURCE_PATH = "es/domain"
 RESOURCE_TYPE = "AWS::Elasticsearch::Domain"
 
+# AWS re-branded their managed ElasticSearch service to Amazon OpenSearch Service in 2021. As part of that
+# they deprecated several ES specific API calls as documented here:
+# https://docs.aws.amazon.com/opensearch-service/latest/developerguide/configuration-api.html
+
+# For the purposes of data backwards compatibility, we will not change the RESOURCE_PATH or RESOURCE_TYPE for
+# OpenSearch, however this code has been updated to leverage the latest boto3 service and API calls
+
 
 def lambda_handler(event, context):
     logger.debug("Received event: " + json.dumps(event, sort_keys=True))
@@ -50,7 +58,7 @@ def lambda_handler(event, context):
         # describe ES Domains
         for r in regions:
             try:
-                es_client = target_account.get_client('es', region=r)
+                es_client = target_account.get_client('opensearch', region=r)
 
                 resource_item = {}
                 resource_item['awsAccountId']                   = target_account.account_id
@@ -59,19 +67,25 @@ def lambda_handler(event, context):
                 resource_item['awsRegion']                      = r
                 resource_item['source']                         = "Antiope"
 
-                for domain_name in list_domains(es_client, target_account, r):
+                response = es_client.list_domain_names()  # This call doesn't support paganiation
+                if 'DomainNames' not in response:
+                    # No OS/ES domains in this region, move along
+                    continue
+
+                for d in response['DomainNames']:
+                    domain_name = d['DomainName']
                     try:
-                        response = es_client.describe_elasticsearch_domain(DomainName=domain_name)
+                        response = es_client.describe_domains(DomainNames=[domain_name])
                     except ClientError as e:
                         if e.response['Error']['Code'] == "ThrottlingException":
                             # Wait a second and try again
                             from time import sleep
                             sleep(1)
-                            response = es_client.describe_elasticsearch_domain(DomainName=domain_name)
+                            response = es_client.describe_domains(DomainNames=[domain_name])
                         else:
                             raise
 
-                    domain = response['DomainStatus']
+                    domain = response['DomainStatusList'][0] # Boto3 returns an array, we ask for one domain, so we get one back
 
                     resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
                     resource_item['configuration']                  = domain
@@ -80,10 +94,21 @@ def lambda_handler(event, context):
                     resource_item['resourceName']                   = domain['DomainName']
                     resource_item['ARN']                            = domain['ARN']
                     resource_item['errors']                         = {}
+                    resource_item['supplementaryConfiguration']['EngineType'] = d['EngineType']
 
                     if domain['AccessPolicies']:
                         # The ES Domains' Access policy is returned as a string. Here we parse the json and reapply it to the dict
                         resource_item['supplementaryConfiguration']['AccessPolicies']  = json.loads(domain['AccessPolicies'])
+
+                    try:
+                        tags = es_client.list_tags(ARN=domain['ARN'])
+                        if len(tags['TagList']) == 0:
+                            resource_item['errors']['no_tags'] = True
+                        else:
+                            resource_item['tags'] = parse_tags(tags['TagList'])
+                    except (ClientError, KeyError, IndexError) as e:
+                        logger.error(f"Failed to get tags for {account.account_id}-{region}-{rds['DBInstanceIdentifier']}: {e}")
+                        resource_item['errors']['no_tags'] = True
 
                     object_name = "{}-{}-{}".format(domain_name, r, target_account.account_id)
                     save_resource_to_s3(RESOURCE_PATH, object_name, resource_item)
@@ -110,18 +135,3 @@ def lambda_handler(event, context):
         logger.critical("{}\nMessage: {}\nContext: {}".format(e, message, vars(context)))
         capture_error(message, context, e, "General Exception for {}: {}".format(message['account_id'], e))
         raise
-
-
-def list_domains(es_client, target_account, region):
-    domain_names = []
-    response = es_client.list_domain_names()  # This call doesn't support paganiation
-    if 'DomainNames' not in response:
-        logger.info("No ElasticSearch domains returned by list_domain_names() for {}({}) in {}".format(
-            target_account.account_name,
-            target_account.account_id,
-            region
-        ))
-    else:
-        for d in response['DomainNames']:
-            domain_names.append(d['DomainName'])
-    return(domain_names)
