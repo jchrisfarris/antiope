@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 ROLE_RESOURCE_PATH = "iam/role"
+BATCH_SIZE=500
 
 
 def lambda_handler(event, context):
@@ -43,7 +44,18 @@ def lambda_handler(event, context):
 
     try:
         target_account = AWSAccount(message['account_id'])
-        discover_roles(target_account)
+        if 'NextMarker' in message:
+            next_marker = discover_roles(target_account, NextMarker=message['NextMarker'])
+        else:
+            next_marker = discover_roles(target_account)
+
+        # is there more to do?
+        if next_marker is None:
+            return(event)
+        else:
+            # Call another lambda
+            message['NextMarker'] = next_marker
+            reinvoke_myself(message, context.invoked_function_arn)
 
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
@@ -58,20 +70,18 @@ def lambda_handler(event, context):
         raise
 
 
-def discover_roles(account):
+def discover_roles(account, NextMarker=None):
     '''
         Discovers all IAM Roles. If there is a trust relationship to an external account it will note that.
     '''
-    roles = []
 
     iam_client = account.get_client('iam')
-    response = iam_client.list_roles()
-    while 'IsTruncated' in response and response['IsTruncated'] is True:  # Gotta Catch 'em all!
-        roles += response['Roles']
-        response = iam_client.list_roles(Marker=response['Marker'])  # I love how the AWS API is so inconsistent with how they do pagination.
-    roles += response['Roles']
+    if NextMarker is None:
+        response = iam_client.list_roles(MaxItems=BATCH_SIZE)
+    else:
+        response = iam_client.list_roles(MaxItems=BATCH_SIZE, Marker=NextMarker)
 
-    for role in roles:
+    for role in response['Roles']:
         try:
             process_role(role, account, iam_client)
         except ClientError as e:
@@ -81,6 +91,13 @@ def discover_roles(account):
                 process_role(role, account, iam_client)
             else:
                 raise
+
+    if 'IsTruncated' in response and response['IsTruncated'] is True:
+        # Invoke another Lambda to finish the work
+        return(response['Marker'])
+    else:
+        return(None)
+
 
 
 def process_role(role, account, iam_client):
@@ -92,8 +109,6 @@ def process_role(role, account, iam_client):
     resource_item['source']                         = "Antiope"
     resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
     resource_item['configuration']                  = role
-    if 'Tags' in role:
-        resource_item['tags']                           = parse_tags(role['Tags'])
     resource_item['supplementaryConfiguration']     = {}
     resource_item['resourceId']                     = role['RoleId']
     resource_item['resourceName']                   = role['RoleName']
