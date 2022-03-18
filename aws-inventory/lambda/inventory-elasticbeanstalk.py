@@ -97,7 +97,7 @@ def discover_elastic_beanstalk_applications(target_account:str, region:str):
         }
 
         try:
-            response = client.list_tags_for_resource(ResourceArn=app.get("ApplicationArn"))
+            response = eb.list_tags_for_resource(ResourceArn=app.get("ApplicationArn"))
             tags = parse_tags(response['ResourceTags'])
             if tags is not None:
                 resource_item['tags'] = tags
@@ -137,7 +137,7 @@ def discover_elastic_beanstalk_environments(target_account:str, region:str):
         }
 
         try:
-            response = client.list_tags_for_resource(ResourceArn=app.get("ApplicationArn"))
+            response = eb.list_tags_for_resource(ResourceArn=app.get("ApplicationArn"))
             tags = parse_tags(response['ResourceTags'])
             if tags is not None:
                 resource_item['tags'] = tags
