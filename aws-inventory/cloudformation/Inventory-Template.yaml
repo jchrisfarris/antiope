@@ -1039,13 +1039,27 @@ Resources:
           Properties:
             Topic: !Ref TriggerPayerInventoryFunctionTopic
 
-
   CostExplorerLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${pResourcePrefix}-costexplorer"
       Description: Get the cost data for each account
       Handler: inventory-payer-costexplorer.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      Timeout: 600
+      CodeUri: ../lambda
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerPayerInventoryFunctionTopic
+
+  OrgUnitLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-ou-inventory"
+      Description: Get the Org Unit Parentage for an account
+      Handler: inventory-payer-ou.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
       Timeout: 600
       CodeUri: ../lambda
@@ -1380,6 +1394,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 604800, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1453,6 +1468,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 604800, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1526,6 +1542,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Maximum", "period": 60, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Maximum", "period": 60, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Maximum", "period": 60, "label": "license-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 60, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Maximum", "period": 60, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Maximum", "period": 60, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Maximum", "period": 60, "label": "route53-inventory" } ],
