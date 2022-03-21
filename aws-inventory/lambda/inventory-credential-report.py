@@ -92,6 +92,10 @@ def get_credential_report(iam_client):
         elif e.response['Error']['Code'] == "ReportInProgress":
             time.sleep(2)
             return get_credential_report(iam_client)
+        elif e.response['Error']['Code'] == "LimitExceeded":
+            # An error occurred (LimitExceeded) when calling the GenerateCredentialReport operation: No more capacity to launch new report generation tasks
+            time.sleep(2)
+            return get_credential_report(iam_client)
         else:
             raise  # Whatever happened here we didn't expect
 

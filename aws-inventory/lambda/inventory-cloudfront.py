@@ -68,10 +68,10 @@ def lambda_handler(event, context):
             resource_item['errors']                         = {}
 
             tags = get_tags(cf_client, distribution['ARN'])
-            if tags is not None and len(tags) != 0:
-                resource_item['tags'] = tags
-            else:
+            if tags is None:
                 resource_item['errors']['no_tags'] = True
+            else:
+                resource_item['tags'] = tags
 
             save_resource_to_s3(RESOURCE_PATH, distribution['Id'], resource_item)
 

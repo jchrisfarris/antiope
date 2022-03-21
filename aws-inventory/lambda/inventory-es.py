@@ -20,6 +20,7 @@ import os
 import time
 from datetime import datetime, timezone
 from dateutil import tz
+from time import sleep
 
 from antiope.aws_account import *
 from common import *
@@ -79,7 +80,6 @@ def lambda_handler(event, context):
                     except ClientError as e:
                         if e.response['Error']['Code'] == "ThrottlingException":
                             # Wait a second and try again
-                            from time import sleep
                             sleep(1)
                             response = es_client.describe_domains(DomainNames=[domain_name])
                         else:
@@ -107,11 +107,12 @@ def lambda_handler(event, context):
                         else:
                             resource_item['tags'] = parse_tags(tags['TagList'])
                     except (ClientError, KeyError, IndexError) as e:
-                        logger.error(f"Failed to get tags for {account.account_id}-{region}-{rds['DBInstanceIdentifier']}: {e}")
+                        logger.error(f"Failed to get tags for {target_account.account_id}-{region}-{rds['DBInstanceIdentifier']}: {e}")
                         resource_item['errors']['no_tags'] = True
 
                     object_name = "{}-{}-{}".format(domain_name, r, target_account.account_id)
                     save_resource_to_s3(RESOURCE_PATH, object_name, resource_item)
+                    sleep(1)
 
             except ClientError as e:
                 # Move onto next region if we get access denied. This is probably SCPs

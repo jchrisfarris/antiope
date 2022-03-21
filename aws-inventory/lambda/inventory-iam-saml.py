@@ -93,9 +93,10 @@ def discover_saml_provider(account):
         response = iam_client.list_saml_provider_tags(SAMLProviderArn=idp['Arn'])
         tags = parse_tags(response['Tags'])
         if tags is not None and len(tags) != 0:
-            resource_item['errors']['no_tags'] = True
-        else:
             resource_item['tags'] = tags
+        else:
+            resource_item['errors']['no_tags'] = True
+
 
         save_resource_to_s3(SAML_RESOURCE_PATH, resource_item['resourceId'], resource_item)
 

@@ -68,15 +68,6 @@ def lambda_handler(event, context):
         raise
 
 
-def get_tags(client, resource_arn):
-    try:
-        response = client.list_tags_for_resource(resourceArn=resource_arn)
-        return(response['tags'])
-    except ClientError as e:
-        logger.error(f"Error getting tags for {resource_arn}: {e}")
-        return(None)
-
-
 def discover_eks_clusters(account, region):
     eks_list = []
     eks_client = account.get_client("eks", region=region)
@@ -105,11 +96,10 @@ def discover_eks_clusters(account, region):
             "errors":                       {}
         }
 
-        tags = get_tags(eks_client, eks_cluster.get("arn"))
-        if tags is not None and len(tags) != 0:
+        if 'tags' not in eks_cluster or len(eks_cluster['tags']) == 0:
             resource_item['errors']['no_tags'] = True
         else:
-            resource_item['tags'] = tags
+            resource_item['tags'] = eks_cluster['tags']
 
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 
