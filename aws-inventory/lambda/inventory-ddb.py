@@ -81,6 +81,7 @@ def discovery_dbb_tables(target_account, region):
         ddb_table_list.append(table)
     for table in ddb_table_list:
         ddb = ddb_client.describe_table(TableName=table)
+        ddb_tags = parse_tags(ddb_client.list_tags_of_resource(ResourceArn=ddb.get("Table").get("TableArn")).get("Tags"))
         resource_item = {
             "awsAccountId":                 target_account.account_id,
             "awsAccountName":               target_account.account_name,
@@ -93,7 +94,8 @@ def discovery_dbb_tables(target_account, region):
             "resourceId":                   ddb.get('Table').get("TableId"),
             "ARN":                          ddb.get("Table").get("TableArn"),
             "resourceCreationTime":         ddb.get("Table").get("CreationDateTime", None), # Does not exist
-            "errors":                       {}
+            "errors":                       {},
+            "tags":                         ddb_tags
         }
     
 
