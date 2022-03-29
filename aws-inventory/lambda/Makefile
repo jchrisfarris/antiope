@@ -29,6 +29,7 @@ FILES =	common.py\
 		inventory-cloudtrail.py \
 		inventory-client-vpn.py \
 		inventory-cw-alarm.py \
+		inventory-ddb.py \
 		inventory-dx.py \
 		inventory-ebs-snapshot.py \
 		inventory-ebs-volume.py \

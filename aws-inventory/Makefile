@@ -41,6 +41,7 @@ FUNCTIONS = $(RESOURCE_PREFIX)-pull-organization-data \
 			$(RESOURCE_PREFIX)-create-foreign-account-report \
 			$(RESOURCE_PREFIX)-create-vpc-report \
 			$(RESOURCE_PREFIX)-cw-alarm-inventory \
+			$(RESOURCE_PREFIX)-ddb-inventory \
 			$(RESOURCE_PREFIX)-dx-inventory \
 			$(RESOURCE_PREFIX)-ebs-snap-inventory \
 			$(RESOURCE_PREFIX)-ebs-vol-inventory \
