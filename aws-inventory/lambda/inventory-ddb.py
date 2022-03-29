@@ -81,6 +81,7 @@ def discovery_dbb_tables(target_account, region):
         ddb_table_list.append(table)
     for table in ddb_table_list:
         ddb = ddb_client.describe_table(TableName=table)
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.list_tags_of_resource
         ddb_tags = parse_tags(ddb_client.list_tags_of_resource(ResourceArn=ddb.get("Table").get("TableArn")).get("Tags"))
         resource_item = {
             "awsAccountId":                 target_account.account_id,
