@@ -1,4 +1,4 @@
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -126,6 +126,22 @@ def process_v2_acl(client, my_WebACL, target_account, region):
     resource_item['resourceName']                   = my_WebACL['Name']
     resource_item['ARN']                            = my_WebACL['ARN']
     resource_item['errors']                         = {}
+
+    try:
+        response = client.list_tags_for_resource(ResourceARN=my_WebACL['ARN'])
+        if 'TagInfoForResource' not in response or 'TagList' not in response['TagInfoForResource']:
+            resource_item['errors']['no_tags'] = True
+        else:
+            tags = parse_tags(response['TagInfoForResource']['TagList'])
+            if tags is not None:
+                resource_item['tags'] = tags
+            else:
+                resource_item['errors']['no_tags'] = True
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'WAFNonexistentItemException':
+            resource_item['errors']['no_tags'] = True
+        else:
+            raise
 
     try:
         response = client.get_logging_configuration(ResourceArn=my_WebACL['ARN'])

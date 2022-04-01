@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,15 @@ def lambda_handler(event, context):
 
     try:
         target_account = AWSAccount(message['account_id'])
-        discover_buckets(target_account, context)
+
+        if 'BucketList' in message:
+            bucket_list = discover_buckets(target_account, context, message['BucketList'])
+        else:
+            bucket_list = discover_buckets(target_account, context)
+
+        if bucket_list is not None:
+            message['BucketList'] = bucket_list
+            reinvoke_myself(message, context.invoked_function_arn)
 
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
@@ -59,17 +67,17 @@ def lambda_handler(event, context):
         raise
 
 
-def discover_buckets(account, context):
+def discover_buckets(account, context, continue_bucket_list=None):
     '''
         Gathers all the S3 Buckets and various details about them
     '''
-    bucket_list = []
 
-    # Not all Public IPs are attached to instances. So we use ec2 describe_network_interfaces()
-    # All results are saved to S3. Public IPs and metadata go to DDB (based on the the presense of PublicIp in the Association)
     s3_client = account.get_client('s3')
-    response = s3_client.list_buckets()  # This API call doesn't paganate. Go fig...
-    bucket_list += response['Buckets']
+    if continue_bucket_list is None:
+        response = s3_client.list_buckets()  # This API call doesn't paganate. Go fig...
+        bucket_list = response['Buckets']
+    else:
+        bucket_list = continue_bucket_list
 
     resource_item = {}
     resource_item['awsAccountId']                   = account.account_id
@@ -79,11 +87,14 @@ def discover_buckets(account, context):
 
     count = 0
 
-    for b in bucket_list:
+    # for b in bucket_list:
+    while len(bucket_list) > 0:
 
-        if context.get_remaining_time_in_millis() < 5000: # 5 second warning
-            logger.critical(f"Ran out of time after {count} buckets inventoried")
-            raise LambdaRunningOutOfTime(f"Time remaining: {context.get_remaining_time_in_millis()}")
+        if context.get_remaining_time_in_millis() < 30000: # 30 second warning
+            logger.warning(f"Ran out of time after {count} buckets inventoried. Passing {len(bucket_list)} buckets to a reinvoke")
+            return(bucket_list)
+
+        b = bucket_list.pop()
 
         bucket_name = b['Name']
 
@@ -143,6 +154,7 @@ def discover_buckets(account, context):
         except ClientError as e:
             if e.response['Error']['Code'] != 'NoSuchTagSet':
                 resource_item['errors']['TagSet'] = e
+                resource_item['errors']['no_tags'] = True
 
         # try:
         #     response = s3_client.get_bucket_versioning(Bucket=bucket_name)

@@ -1,4 +1,4 @@
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>/Robert Kuhlke <bkuhlke@yahoo.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>/Robert Kuhlke <bkuhlke@yahoo.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,6 +132,22 @@ def process_v1_acl(client, my_WebACL, target_account, region, resourceType):
     resource_item['errors']                         = {}
 
     try:
+        response = client.list_tags_for_resource(ResourceARN=resource_item['ARN'])
+        if 'TagInfoForResource' not in response or 'TagList' not in response['TagInfoForResource']:
+            resource_item['errors']['no_tags'] = True
+        else:
+            tags = parse_tags(response['TagInfoForResource']['TagList'])
+            if tags is not None:
+                resource_item['tags'] = tags
+            else:
+                resource_item['errors']['no_tags'] = True
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'WAFNonexistentItemException':
+            resource_item['errors']['no_tags'] = True
+        else:
+            raise
+
+    try:
         response = client.get_logging_configuration(ResourceArn=my_WebACL['WebACLArn'])
         if 'LoggingConfiguration' in response:
             resource_item['supplementaryConfiguration']['LoggingConfiguration'] = response['LoggingConfiguration']
@@ -159,7 +175,7 @@ def process_v1_acl(client, my_WebACL, target_account, region, resourceType):
                 resource_item['errors']['AssociatedResourceArns'] = message
                 logger.warning(message)
 
-    if resourceType == WAF: 
+    if resourceType == WAF:
         save_resource_to_s3(WAFv1_PATH, resource_item['resourceId'], resource_item)
     else:
         save_resource_to_s3(WAFv1_REGIONAL_PATH, resource_item['resourceId'], resource_item)

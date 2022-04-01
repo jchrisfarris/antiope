@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,6 @@ def lambda_handler(event, context):
                 logger.warning(f"Access Denied for SES in region {region} for account {target_account.account_name}({target_account.account_id}): {e}")
                 continue
 
-
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
         return()
@@ -83,7 +82,6 @@ def lambda_handler(event, context):
 
 def discover_identities(client):
     '''Discover all SES Identities'''
-
     identities = []
     response = client.list_email_identities()
     while 'NextToken' in response:  # Gotta Catch 'em all!
@@ -91,6 +89,7 @@ def discover_identities(client):
         response = client.list_email_identities(NextToken=response['NextToken'])
     identities += response['EmailIdentities']
     return(identities)
+
 
 def process_identity(account, region, i, client):
 
@@ -109,6 +108,9 @@ def process_identity(account, region, i, client):
     resource_item['resourceId']                     = f"{account.account_id}-{region}-{i['IdentityName']}"
     resource_item['errors']                         = {}
     resource_item['tags']                           = parse_tags(identity['Tags'])
+
+    if len(identity['Tags']) == 0:
+        resource_item['errors']['no_tags'] = True
 
     save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 

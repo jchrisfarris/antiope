@@ -38,7 +38,7 @@ def lambda_handler(event, context):
 
     try:
         target_account = AWSAccount(message['account_id'])
-        health_client = target_account.get_client('health')
+        health_client = target_account.get_client('health', region="us-east-1")
 
         data = {}
 

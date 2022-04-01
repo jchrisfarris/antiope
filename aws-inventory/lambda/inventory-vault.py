@@ -1,4 +1,4 @@
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,12 +95,17 @@ def discover_vaults(target_account, region):
         resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
         resource_item['awsRegion']                      = region
         resource_item['configuration']                  = v
-        # TODO Tags?
         resource_item['supplementaryConfiguration']     = {}
         resource_item['resourceId']                     = v['BackupVaultArn'].replace(':', '-')
         resource_item['resourceName']                   = v['BackupVaultName']
         resource_item['ARN']                            = v['BackupVaultArn']
         resource_item['errors']                         = {}
+
+        tags = fetch_tags_generic(client, v['BackupVaultArn'])
+        if tags is not None:
+            resource_item['tags'] = tags
+        else:
+            resource_item['errors']['no_tags'] = True
 
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 

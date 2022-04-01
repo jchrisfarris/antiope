@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,11 +106,13 @@ def discover_users(account):
 
         try:
             response = iam_client.list_user_tags(UserName=user['UserName'])
-            if 'Tags' in response:
+            if 'Tags' in response and len(response['Tags']) !=0 :
                 resource_item['tags'] = parse_tags(response['Tags'])
+            else:
+                resource_item['errors']['no_tags'] = True
         except ClientError as e:
             if e.response['Error']['Code'] == "NoSuchEntity":
-                pass
+                resource_item['errors']['no_tags'] = True
             else:
                 raise
 

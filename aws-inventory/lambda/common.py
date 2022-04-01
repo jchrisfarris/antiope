@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ from antiope.foreign_aws_account import *
 
 def parse_tags(tagset):
     """Convert the tagset as returned by AWS into a normal dict of {"tagkey": "tagvalue"}"""
+    if len(tagset) == 0:
+        return(None)
     output = {}
     for tag in tagset:
         # aws is inconsistent with tags sometimes they use caps and sometimes not
@@ -36,7 +38,18 @@ def parse_tags(tagset):
             output[tag['Key']] = tag['Value']
         if 'key' in tag:
             output[tag['key']] = tag['value']
+        if 'TagKey' in tag:
+            output[tag['TagKey']] = tag['TagValue']
     return(output)
+
+
+def fetch_tags_generic(client, resource_arn):
+    output = {}
+    response = client.list_tags(ResourceArn=resource_arn)
+    while 'NextToken' in response:
+        output.update(response['Tags'])
+        response = client.list_tags(ResourceArn=resource_arn, NextToken=response['NextToken'])
+    output.update(response['Tags'])
 
 
 def save_resource_to_s3(prefix, resource_id, resource):
@@ -130,7 +143,7 @@ def capture_error(event, context, error, message):
     }
 
     logger.info(f"Sending Lambda Exception Message: {body}")
-    response = sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(body))
+    response = sqs_client.send_message(QueueUrl=queue_url, MessageBody=json.dumps(body, default=str))
     return(body)
 
 
@@ -142,6 +155,17 @@ def set_debug(event, logger):
     if 'DEBUG' in os.environ and os.environ['DEBUG'] == "True":
         logger.setLevel(logging.DEBUG)
     return(logger)
+
+
+def reinvoke_myself(message, function_arn):
+    client = boto3.client('lambda')
+
+    event = {"Records": [{"Sns": {"Message": json.dumps(message, default=str) } } ] }
+    response = client.invoke(
+        FunctionName=function_arn,
+        InvocationType='Event',
+        Payload=json.dumps(event)
+    )
 
 
 class LambdaRunningOutOfTime(Exception):

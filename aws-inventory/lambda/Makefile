@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,17 +17,18 @@
 PYTHON=python3
 PIP=pip3
 
-FILES =	common.py\
+FILES = common.py \
 		get_billing_data.py \
-		inventory-account.py \
 		inventory-accessanalyzer-analyzers.py \
 		inventory-accessanalyzer-findings.py \
+		inventory-account.py \
 		inventory-ami.py \
 		inventory-buckets.py \
 		inventory-cft.py \
+		inventory-client-vpn.py \
 		inventory-cloudfront.py \
 		inventory-cloudtrail.py \
-		inventory-client-vpn.py \
+		inventory-credential-report.py \
 		inventory-cw-alarm.py \
 		inventory-ddb.py \
 		inventory-dx.py \
@@ -43,16 +44,17 @@ FILES =	common.py\
 		inventory-firehose.py \
 		inventory-guardduty.py \
 		inventory-health-report.py \
-		inventory-iam.py \
+		inventory-iam-role.py \
+		inventory-iam-saml.py \
 		inventory-iam-user.py \
 		inventory-instances-sg.py \
 		inventory-kms.py \
 		inventory-lambdas.py \
 		inventory-licenses.py \
-		inventory-redshift.py \
-		inventory-rds.py \
-		inventory-route53.py \
 		inventory-payer-costexplorer.py \
+		inventory-rds.py \
+		inventory-redshift.py \
+		inventory-route53.py \
 		inventory-sagemaker.py \
 		inventory-secrets.py \
 		inventory-ses.py \
@@ -60,10 +62,10 @@ FILES =	common.py\
 		inventory-ssm.py \
 		inventory-storage-gateway.py \
 		inventory-support-cases.py \
-		inventory-trusted-advisor.py \
-		inventory-vpc.py \
-		inventory-vault.py \
 		inventory-transit-gateway.py \
+		inventory-trusted-advisor.py \
+		inventory-vault.py \
+		inventory-vpc.py \
 		inventory-waf.py \
 		inventory-wafv1.py \
 		inventory-worklink.py \

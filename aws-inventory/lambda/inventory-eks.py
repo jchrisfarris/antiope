@@ -1,4 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +52,6 @@ def lambda_handler(event, context):
                 else:
                     raise  # pass on to the next handlier
 
-
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
         return()
@@ -95,5 +95,11 @@ def discover_eks_clusters(account, region):
             "resourceCreationTime":         eks_cluster.get("createdAt"),
             "errors":                       {}
         }
+
+        if 'tags' not in eks_cluster or len(eks_cluster['tags']) == 0:
+            resource_item['errors']['no_tags'] = True
+        else:
+            resource_item['tags'] = eks_cluster['tags']
+
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 
