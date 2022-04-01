@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,8 +44,6 @@ def lambda_handler(event, context):
     message = json.loads(event['Records'][0]['Sns']['Message'])
     logger.info("Received message: " + json.dumps(message, sort_keys=True))
 
-    last_run_time = datetime.datetime.now(timezone.utc) - datetime.timedelta(minutes=35) # FIXME from being hardcoded time
-
     try:
         target_account = AWSAccount(message['account_id'])
 
@@ -58,9 +56,9 @@ def lambda_handler(event, context):
                 cf_client = target_account.get_client('cloudformation', region=r)
                 response = cf_client.describe_stacks()
                 while 'NextToken' in response:
-                    process_stacks(target_account, cf_client, r, response['Stacks'], last_run_time)
+                    process_stacks(target_account, cf_client, r, response['Stacks'])
                     response = cf_client.describe_stacks(NextToken=response['NextToken'])
-                process_stacks(target_account, cf_client, r, response['Stacks'], last_run_time)
+                process_stacks(target_account, cf_client, r, response['Stacks'])
             except ClientError as e:
                 if e.response['Error']['Code'] == 'AccessDenied':
                     logger.warning(f"AccessDenied attempting to describe stacks in {target_account.account_name} ({target_account.account_id}) in region {r}: {e}")
@@ -79,20 +77,12 @@ def lambda_handler(event, context):
         raise
 
 
-def process_stacks(target_account, cf_client, region, stacks, last_run_time):
+def process_stacks(target_account, cf_client, region, stacks):
 
     start_time = int(time.time())
     count = 0
 
     for stack in stacks:
-
-        # FIXME, support a full inventory somehow
-        if 'LastUpdatedTime' in stack and stack['LastUpdatedTime'] < last_run_time:
-            # Don't inventory what's been done before
-            continue
-        if 'LastUpdatedTime' not in stack and stack['CreationTime'] < last_run_time:
-            # Don't inventory what's been done before
-            continue
 
         logger.debug("Processing stack {} for {} in {}".format(stack['StackId'], target_account.account_id, region))
         count += 1
@@ -105,12 +95,14 @@ def process_stacks(target_account, cf_client, region, stacks, last_run_time):
         resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
         resource_item['awsRegion']                      = region
         resource_item['configuration']                  = stack
-        if 'Tags' in stack:
+        resource_item['errors']                         = {}
+        if 'Tags' in stack and len(stack['Tags']) != 0:
             resource_item['tags']                       = parse_tags(stack['Tags'])
+        else:
+            resource_item['errors']['no_tags'] = True
         resource_item['supplementaryConfiguration']     = {}
         # StackId is really an ARN which isn't suitable as an S3 Key. The part after the last "/" is unique, but the name is helpful too.
         resource_item['resourceId']                     = stack['StackId'].split(":")[-1].replace("/", "-")
-        resource_item['errors']                         = {}
         resource_item['resourceName']                   = stack['StackName']
         resource_item['ARN']                            = stack['StackId']
         resource_item['resourceCreationTime']           = stack['CreationTime']

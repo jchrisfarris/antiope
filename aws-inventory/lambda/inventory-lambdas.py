@@ -1,4 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,6 +70,13 @@ def lambda_handler(event, context):
         raise
 
 
+def fetch_tags(client, resource_arn):
+    response = client.list_tags(Resource=resource_arn)
+    if 'Tags' not in response or len(response['Tags']) == 0:
+        return(None)
+    else:
+        return(response['Tags'])
+
 def discover_lambdas(target_account, region):
     '''Iterate across all regions to discover Lambdas'''
 
@@ -113,6 +121,12 @@ def process_lambda(client, mylambda, target_account, region):
             message = f"Error getting the Policy for function {mylambda['FunctionName']} in {region} for {target_account.account_name}: {e}"
             resource_item['errors']['Policy'] = message
             logger.warning(message)
+
+    tags = fetch_tags(client, mylambda['FunctionArn'])
+    if tags is None:
+        resource_item['errors']['no_tags'] = True
+    else:
+        resource_item['tags'] = tags
 
     save_resource_to_s3(FUNC_PATH, resource_item['resourceId'], resource_item)
 

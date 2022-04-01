@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 ROLE_RESOURCE_PATH = "iam/role"
-SAML_RESOURCE_PATH = "iam/saml"
+BATCH_SIZE=500
 
 
 def lambda_handler(event, context):
@@ -44,9 +44,18 @@ def lambda_handler(event, context):
 
     try:
         target_account = AWSAccount(message['account_id'])
-        discover_roles(target_account)
-        discover_saml_provider(target_account)
-        fetch_credential_report(target_account, message)
+        if 'NextMarker' in message:
+            next_marker = discover_roles(target_account, NextMarker=message['NextMarker'])
+        else:
+            next_marker = discover_roles(target_account)
+
+        # is there more to do?
+        if next_marker is None:
+            return(event)
+        else:
+            # Call another lambda
+            message['NextMarker'] = next_marker
+            reinvoke_myself(message, context.invoked_function_arn)
 
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
@@ -61,20 +70,18 @@ def lambda_handler(event, context):
         raise
 
 
-def discover_roles(account):
+def discover_roles(account, NextMarker=None):
     '''
         Discovers all IAM Roles. If there is a trust relationship to an external account it will note that.
     '''
-    roles = []
 
     iam_client = account.get_client('iam')
-    response = iam_client.list_roles()
-    while 'IsTruncated' in response and response['IsTruncated'] is True:  # Gotta Catch 'em all!
-        roles += response['Roles']
-        response = iam_client.list_roles(Marker=response['Marker'])  # I love how the AWS API is so inconsistent with how they do pagination.
-    roles += response['Roles']
+    if NextMarker is None:
+        response = iam_client.list_roles(MaxItems=BATCH_SIZE)
+    else:
+        response = iam_client.list_roles(MaxItems=BATCH_SIZE, Marker=NextMarker)
 
-    for role in roles:
+    for role in response['Roles']:
         try:
             process_role(role, account, iam_client)
         except ClientError as e:
@@ -84,6 +91,13 @@ def discover_roles(account):
                 process_role(role, account, iam_client)
             else:
                 raise
+
+    if 'IsTruncated' in response and response['IsTruncated'] is True:
+        # Invoke another Lambda to finish the work
+        return(response['Marker'])
+    else:
+        return(None)
+
 
 
 def process_role(role, account, iam_client):
@@ -95,8 +109,6 @@ def process_role(role, account, iam_client):
     resource_item['source']                         = "Antiope"
     resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
     resource_item['configuration']                  = role
-    if 'Tags' in role:
-        resource_item['tags']                           = parse_tags(role['Tags'])
     resource_item['supplementaryConfiguration']     = {}
     resource_item['resourceId']                     = role['RoleId']
     resource_item['resourceName']                   = role['RoleName']
@@ -111,6 +123,17 @@ def process_role(role, account, iam_client):
     response = iam_client.list_attached_role_policies(RoleName=role['RoleName']) # FIXME Paganation can occur.
     resource_item['supplementaryConfiguration']['AttachedPolicies'] = response['AttachedPolicies']
 
+    try:
+        response = iam_client.list_role_tags(RoleName=role['RoleName'])
+        if 'Tags' in response and len(response['Tags']) !=0 :
+            resource_item['tags'] = parse_tags(response['Tags'])
+        else:
+            resource_item['errors']['no_tags'] = True
+    except ClientError as e:
+        if e.response['Error']['Code'] == "NoSuchEntity":
+            resource_item['errors']['no_tags'] = True
+        else:
+            raise
 
     # Now here is the interesting bit. What other accounts does this role trust, and do we know them?
     for s in role['AssumeRolePolicyDocument']['Statement']:
@@ -164,105 +187,4 @@ def process_trusted_account(principal, role_arn):
         except ClientError as e:
             raise AccountUpdateError(u"Unable to create {}: {}".format(a[u'Name'], e))
 
-
-def discover_saml_provider(account):
-    '''
-        Queries AWS to determine SAML Providers exist (and who you're trusting)
-    '''
-    iam_client = account.get_client('iam')
-    response = iam_client.list_saml_providers()
-
-    resource_item = {}
-    resource_item['awsAccountId']                   = account.account_id
-    resource_item['awsAccountName']                 = account.account_name
-    resource_item['resourceType']                   = "AWS::IAM::SAML"
-    resource_item['source']                         = "Antiope"
-
-    for idp in response['SAMLProviderList']:
-
-        # The Metadata doc (with the useful deets) are in an XML doc that requires another call
-        saml = iam_client.get_saml_provider(SAMLProviderArn=idp['Arn'])
-        metadata_xml = parseString(saml['SAMLMetadataDocument'])
-        idp['SAMLMetadataDocument'] = metadata_xml.toprettyxml()
-
-        # We get the name from the end of the arn
-        name = idp['Arn'].split("/")[-1]
-
-        resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
-        resource_item['configuration']                  = idp
-        resource_item['supplementaryConfiguration']     = {}
-        resource_item['resourceId']                     = f"{name}-{account.account_id}"
-        resource_item['resourceName']                   = name
-        resource_item['ARN']                            = idp['Arn']
-        resource_item['resourceCreationTime']           = idp['CreateDate']
-        resource_item['errors']                         = {}
-
-        save_resource_to_s3(SAML_RESOURCE_PATH, resource_item['resourceId'], resource_item)
-
-
-def fetch_credential_report(account, event):
-    '''
-        Fetches the IAM User Credential Report and saves it to S3
-    '''
-    iam_client = account.get_client('iam')
-    csv_data = get_credential_report(iam_client)
-    object_key = f"CredentialReports/{account.account_id}-{event['timestamp']}.csv"
-
-    s3_client = boto3.client('s3')
-    try:
-        response = s3_client.put_object(
-            # ACL='public-read',
-            Body=csv_data,
-            Bucket=os.environ['INVENTORY_BUCKET'],
-            ContentType='text/csv',
-            Key=object_key,
-        )
-    except ClientError as e:
-        logger.error("ClientError saving report: {}".format(e))
-        raise
-
-
-def get_credential_report(iam_client):
-    '''Fetches the credential report. Uses recursion in case the report isn't available immediatly'''
-
-    # Lets see if a report is already available
-    try:
-        response = iam_client.get_credential_report()
-        credential_report_csv = response['Content'].decode('ascii')
-        return(credential_report_csv)
-    except ClientError as e:
-        if e.response['Error']['Code'] == "ReportNotPresent":
-            pass
-        elif e.response['Error']['Code'] == "ReportInProgress":
-            time.sleep(2)
-            return get_credential_report(iam_client)
-        else:
-            raise  # Whatever happened here we didn't expect
-
-    try:
-        # No report - go request one get generated
-        resp1 = iam_client.generate_credential_report()
-        if resp1['State'] == 'COMPLETE':
-            try:
-                response = iam_client.get_credential_report()
-                credential_report_csv = response['Content'].decode('ascii')
-                # # print(credential_report_csv)
-                # reader = csv.DictReader(credential_report_csv.splitlines())
-                # # print(reader)
-                # # print(reader.fieldnames)
-                # credential_report = []
-                # for row in reader:
-                #     credential_report.append(row)
-                return(credential_report_csv)
-            except ClientError as e:
-                print("Unknown error getting Report: " + e.message)
-        else:
-            time.sleep(2)
-            return get_credential_report(iam_client)
-    except ClientError as e:
-        if e.response['Error']['Code'] == "Throttling":
-            time.sleep(2)
-            return get_credential_report(iam_client)
-        else:
-            raise
 

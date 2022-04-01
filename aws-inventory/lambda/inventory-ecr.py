@@ -1,4 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -84,6 +85,16 @@ def discover_repos(target_account, region):
         process_repo(client, r, target_account, region)
 
 
+def get_tags(client, resource_arn):
+    try:
+        response = client.list_tags_for_resource(resourceArn=resource_arn)
+        tags = parse_tags(response['tags'])
+        return(tags)
+    except ClientError as e:
+        logger.error(f"Error getting tags for {resource_arn}: {e}")
+        return(None)
+
+
 def process_repo(client, repo, target_account, region):
     resource_item = {}
     resource_item['awsAccountId']                   = target_account.account_id
@@ -99,6 +110,12 @@ def process_repo(client, repo, target_account, region):
     resource_item['ARN']                            = repo['repositoryArn']
     resource_item['resourceCreationTime']           = repo['createdAt']
     resource_item['errors']                         = {}
+
+    tags = get_tags(client, repo['repositoryArn'])
+    if tags is not None and len(tags) != 0:
+        resource_item['tags'] = tags
+    else:
+        resource_item['errors']['no_tags'] = True
 
     try:
         response = client.get_repository_policy(repositoryName=repo['repositoryName'])

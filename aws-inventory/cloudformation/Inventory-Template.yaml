@@ -1,5 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
-# Copyright 2021 Chris Farris <chrisf@primeharbor.com>
+# Copyright 2021-2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -189,6 +189,15 @@ Resources:
               - !Ref TriggerPayerInventoryFunctionTopic
               - !Ref NewActiveAccountTopic
               - !Ref NewForeignAccountTopic
+      - PolicyName: InvokeMoreLambda
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: "Allow"
+            Action:
+            - lambda:InvokeFunction
+            Resource:
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${pResourcePrefix}-*"
       - PolicyName: PublishToSQS
         PolicyDocument:
           Version: '2012-10-17'
@@ -504,12 +513,26 @@ Resources:
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
 
-  IAMInventoryLambdaFunction:
+  IAMRoleInventoryLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "${pResourcePrefix}-iam-inventory"
-      Description: Inventory IAM Roles & Users
-      Handler: inventory-iam.lambda_handler
+      FunctionName: !Sub "${pResourcePrefix}-iam-role-inventory"
+      Description: Inventory IAM Roles
+      Handler: inventory-iam-role.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      CodeUri: ../lambda
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerAccountInventoryFunctionTopic
+
+  IAMSAMLInventoryLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-iam-saml-inventory"
+      Description: Inventory IAM SAML Providers
+      Handler: inventory-iam-saml.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
       CodeUri: ../lambda
       Events:
@@ -524,6 +547,20 @@ Resources:
       FunctionName: !Sub "${pResourcePrefix}-iam-user-inventory"
       Description: Inventory IAM Roles & Users
       Handler: inventory-iam-user.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      CodeUri: ../lambda
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerAccountInventoryFunctionTopic
+
+  IAMCredentialInventoryLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-cred-report-inventory"
+      Description: Pull IAM Credential Reports
+      Handler: inventory-credential-report.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
       CodeUri: ../lambda
       Events:
@@ -829,7 +866,7 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
-  
+
   StorageGatewayInventoryLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -843,12 +880,12 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
-  
+
   EKSInventoryLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${pResourcePrefix}-eks-inventory"
-      Description: Inventory Kubernetes 
+      Description: Inventory Kubernetes
       Handler: inventory-eks.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
       CodeUri: ../lambda
@@ -857,11 +894,11 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
-  
+
   ElasticBeanstalkInventoryLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "${pResourcePrefix}-elastic-beanstalk-inventory"
+      FunctionName: !Sub "${pResourcePrefix}-elasticbeanstalk-inventory"
       Description: Inventory Elastic Beanstalk
       Handler: inventory-elasticbeanstalk.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
@@ -1002,13 +1039,27 @@ Resources:
           Properties:
             Topic: !Ref TriggerPayerInventoryFunctionTopic
 
-
   CostExplorerLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${pResourcePrefix}-costexplorer"
       Description: Get the cost data for each account
       Handler: inventory-payer-costexplorer.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      Timeout: 600
+      CodeUri: ../lambda
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerPayerInventoryFunctionTopic
+
+  OrgUnitLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-ou-inventory"
+      Description: Get the Org Unit Parentage for an account
+      Handler: inventory-payer-ou.lambda_handler
       Role: !GetAtt InventoryLambdaRole.Arn
       Timeout: 600
       CodeUri: ../lambda
@@ -1335,12 +1386,15 @@ Resources:
                   [ "...", "${pResourcePrefix}-ia2-org-findings", { "stat": "Sum", "period": 604800, "label": "ia2-org-findings" } ],
                   [ "...", "${pResourcePrefix}-costexplorer", { "stat": "Sum", "period": 604800, "label": "costexplorer" } ],
 
-                  [ "...", "${pResourcePrefix}-iam-inventory", { "stat": "Sum", "period": 604800, "label": "iam-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-role-inventory", { "stat": "Sum", "period": 604800, "label": "iam-role-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-saml-inventory", { "stat": "Sum", "period": 604800, "label": "iam-saml-inventory" } ],
                   [ "...", "${pResourcePrefix}-iam-user-inventory", { "stat": "Sum", "period": 604800, "label": "iam-user-inventory" } ],
+                  [ "...", "${pResourcePrefix}-cred-report-inventory", { "stat": "Sum", "period": 604800, "label": "cred-report-inventory" } ],
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 604800, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 604800, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1406,12 +1460,15 @@ Resources:
                   [ "...", "${pResourcePrefix}-ia2-analyzer-inventory", { "stat": "Sum", "period": 604800, "label": "ia2-analyzer-inventory" } ],
                   [ "...", "${pResourcePrefix}-ia2-org-findings", { "stat": "Sum", "period": 604800, "label": "ia2-org-findings" } ],
                   [ "...", "${pResourcePrefix}-costexplorer", { "stat": "Sum", "period": 604800, "label": "costexplorer" } ],
-                  [ "...", "${pResourcePrefix}-iam-inventory", { "stat": "Sum", "period": 604800, "label": "iam-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-role-inventory", { "stat": "Sum", "period": 604800, "label": "iam-role-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-saml-inventory", { "stat": "Sum", "period": 604800, "label": "iam-saml-inventory" } ],
                   [ "...", "${pResourcePrefix}-iam-user-inventory", { "stat": "Sum", "period": 604800, "label": "iam-user-inventory" } ],
+                  [ "...", "${pResourcePrefix}-cred-report-inventory", { "stat": "Sum", "period": 604800, "label": "cred-report-inventory" } ],
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Sum", "period": 604800, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 604800, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1477,12 +1534,15 @@ Resources:
                   [ "...", "${pResourcePrefix}-ia2-analyzer-inventory", { "stat": "Maximum", "period": 60, "label": "ia2-analyzer-inventory" } ],
                   [ "...", "${pResourcePrefix}-ia2-org-findings", { "stat": "Maximum", "period": 60, "label": "ia2-org-findings" } ],
                   [ "...", "${pResourcePrefix}-costexplorer", { "stat": "Maximum", "period": 60, "label": "costexplorer" } ],
-                  [ "...", "${pResourcePrefix}-iam-inventory", { "stat": "Maximum", "period": 60, "label": "iam-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-role-inventory", { "stat": "Sum", "period": 60, "label": "iam-role-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-saml-inventory", { "stat": "Sum", "period": 60, "label": "iam-saml-inventory" } ],
                   [ "...", "${pResourcePrefix}-iam-user-inventory", { "stat": "Maximum", "period": 60, "label": "iam-user-inventory" } ],
+                  [ "...", "${pResourcePrefix}-cred-report-inventory", { "stat": "Sum", "period": 60, "label": "cred-report-inventory" } ],
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Maximum", "period": 60, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Maximum", "period": 60, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Maximum", "period": 60, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Maximum", "period": 60, "label": "license-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 60, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Maximum", "period": 60, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Maximum", "period": 60, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Maximum", "period": 60, "label": "route53-inventory" } ],

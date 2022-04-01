@@ -1,4 +1,5 @@
 # Copyright 2019-2020 Turner Broadcasting Inc. / WarnerMedia
+# Copyright 2022 Chris Farris <chrisf@primeharbor.com>
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,9 +41,28 @@ def lambda_handler(event, context):
 
     try:
         target_account = AWSAccount(message['account_id'])
-        for r in target_account.get_regions():
+
+        if 'RemainingRegions' not in message:
+            regions = target_account.get_regions()
+        else:
+            regions = message['RemainingRegions']
+
+        if 'ActiveRegion' in message and 'NextMarker' in message:
+            next_marker = discover_keys(target_account, message['ActiveRegion'], message['NextMarker'])
+            if next_marker is not None:
+                message['NextMarker'] = next_marker
+                reinvoke_myself(message, context.invoked_function_arn)
+            # else move on to the next region
+
+        while len(regions) > 0:
+            r = regions.pop(0)
             try:
-                discover_keys(target_account, r)
+                next_marker = discover_keys(target_account, r)
+                if next_marker is not None:
+                    message['NextMarker'] = next_marker
+                    message['ActiveRegion'] = r
+                    message['RemainingRegions'] = regions
+                    reinvoke_myself(message, context.invoked_function_arn)
             except ClientError as e:
                 # Move onto next region if we get access denied. This is probably SCPs
                 if e.response['Error']['Code'] == 'AccessDeniedException':
@@ -68,21 +88,26 @@ def lambda_handler(event, context):
         raise
 
 
-def discover_keys(target_account, region):
+def discover_keys(target_account, region, next_marker=None):
     '''Iterate across all regions to discover keys'''
 
     keys = []
     client = target_account.get_client('kms', region=region)
-    response = client.list_keys()
-    while response['Truncated']:
-        keys += response['Keys']
-        response = client.list_keys(Marker=response['NextMarker'])
-    keys += response['Keys']
 
-    logger.info(f"Found {len(keys)} keys in {target_account.account_name}({target_account.account_id})")
+    if next_marker is None:
+        response = client.list_keys()
+    else:
+        response = client.list_keys(Marker=next_marker)
 
-    for k in keys:
+    logger.info(f"Found {len(response['Keys'])} keys in {target_account.account_name}({target_account.account_id}) - {region}")
+    for k in response['Keys']:
         process_key(client, k['KeyArn'], target_account, region)
+
+    if response['Truncated']:
+        # Force the re-invocation of this lambda with more work to do
+        return(response['NextMarker'])
+    else:
+        return(None) # Move on to the next region
 
 
 def process_key(client, key_arn, target_account, region):
@@ -112,10 +137,15 @@ def process_key(client, key_arn, target_account, region):
     resource_item['errors']                         = {}
 
     try:
-        resource_item['tags']                           = client.list_resource_tags(KeyId=key['KeyId'])
+        response = client.list_resource_tags(KeyId=key['KeyId'])
+        tags = parse_tags(response['Tags'])
+        if tags is not None:
+            resource_item['tags'] = tags
+        else:
+            resource_item['errors']['no_tags'] = True
     except ClientError as e:
         if e.response['Error']['Code'] == 'NotFoundException':
-            pass
+            resource_item['errors']['no_tags'] = True
         elif e.response['Error']['Code'] == 'AccessDeniedException':
             resource_item['errors']['ResourceTags-Error'] = e.response['Error']['Message']
         else:
@@ -146,17 +176,20 @@ def process_key(client, key_arn, target_account, region):
         else:
             raise
 
-    try:
-        tags = get_key_tags(client, key_arn)
-        if tags:
-            resource_item['tags'] = tags
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'NotFoundException':
-            pass
-        elif e.response['Error']['Code'] == 'AccessDeniedException':
-            resource_item['errors']['Tags-Error'] = e.response['Error']['Message']
-        else:
-            raise
+    # try:
+    #     tags = get_key_tags(client, key_arn)
+    #     if tags:
+    #         resource_item['tags'] = tags
+    #     else:
+    #         resource_item['errors']['no_tags'] = True
+    # except ClientError as e:
+    #     if e.response['Error']['Code'] == 'NotFoundException':
+    #         resource_item['errors']['no_tags'] = True
+    #     elif e.response['Error']['Code'] == 'AccessDeniedException':
+    #         resource_item['errors']['Tags-Error'] = e.response['Error']['Message']
+    #         resource_item['errors']['no_tags'] = True
+    #     else:
+    #         raise
 
     try:
         grants = get_key_grants(client, key_arn)
