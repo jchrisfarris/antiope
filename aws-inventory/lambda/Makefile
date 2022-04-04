@@ -30,6 +30,7 @@ FILES = common.py \
 		inventory-cloudtrail.py \
 		inventory-credential-report.py \
 		inventory-cw-alarm.py \
+		inventory-ddb.py \
 		inventory-dx.py \
 		inventory-ebs-snapshot.py \
 		inventory-ebs-volume.py \

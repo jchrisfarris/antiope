@@ -895,6 +895,20 @@ Resources:
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
 
+  DDBInventoryLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${pResourcePrefix}-ddb-inventory"
+      Description: Inventory DynamoDB Tables
+      Handler: inventory-ddb.lambda_handler
+      Role: !GetAtt InventoryLambdaRole.Arn
+      CodeUri: ../lambda
+      Events:
+        AccountInventoryTrigger:
+          Type: SNS
+          Properties:
+            Topic: !Ref TriggerAccountInventoryFunctionTopic
+
   ElasticBeanstalkInventoryLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -1369,6 +1383,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-cloudfront-inventory", { "stat": "Sum", "period": 604800, "label": "cloudfront-inventory" } ],
                   [ "...", "${pResourcePrefix}-cloudtrail-inventory", { "stat": "Sum", "period": 604800, "label": "cloudtrail-inventory" } ],
                   [ "...", "${pResourcePrefix}-cw-alarm-inventory", { "stat": "Sum", "period": 604800, "label": "cw-alarm-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ddb-inventory", { "stat": "Sum", "period": 604800, "label": "ddb-inventory" } ],
                   [ "...", "${pResourcePrefix}-dx-inventory", { "stat": "Sum", "period": 604800, "label": "dx-inventory" } ],
                   [ "...", "${pResourcePrefix}-ebs-vol-inventory", { "stat": "Sum", "period": 604800, "label": "ebs-vol-inventory" } ],
                   [ "...", "${pResourcePrefix}-ebs-snap-inventory", { "stat": "Sum", "period": 604800, "label": "ebs-snap-inventory" } ],
@@ -1394,7 +1409,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
-                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 604800, "label": "ou-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Sum", "period": 604800, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1444,6 +1459,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-cloudfront-inventory", { "stat": "Sum", "period": 604800, "label": "cloudfront-inventory" } ],
                   [ "...", "${pResourcePrefix}-cloudtrail-inventory", { "stat": "Sum", "period": 604800, "label": "cloudtrail-inventory" } ],
                   [ "...", "${pResourcePrefix}-cw-alarm-inventory", { "stat": "Sum", "period": 604800, "label": "cw-alarm-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ddb-inventory", { "stat": "Sum", "period": 604800, "label": "ddb-inventory" } ],
                   [ "...", "${pResourcePrefix}-dx-inventory", { "stat": "Sum", "period": 604800, "label": "dx-inventory" } ],
                   [ "...", "${pResourcePrefix}-ebs-vol-inventory", { "stat": "Sum", "period": 604800, "label": "ebs-vol-inventory" } ],
                   [ "...", "${pResourcePrefix}-ebs-snap-inventory", { "stat": "Sum", "period": 604800, "label": "ebs-snap-inventory" } ],
@@ -1468,7 +1484,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Sum", "period": 604800, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Sum", "period": 604800, "label": "lambdas-inventory" } ],
                   [ "...", "${pResourcePrefix}-license-inventory", { "stat": "Sum", "period": 604800, "label": "license-inventory" } ],
-                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Maximum", "period": 604800, "label": "ou-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ou-inventory", { "stat": "Sum", "period": 604800, "label": "ou-inventory" } ],
                   [ "...", "${pResourcePrefix}-redshift-inventory", { "stat": "Sum", "period": 604800, "label": "redshift-inventory" } ],
                   [ "...", "${pResourcePrefix}-rds-inventory", { "stat": "Sum", "period": 604800, "label": "rds-inventory" } ],
                   [ "...", "${pResourcePrefix}-route53-inventory", { "stat": "Sum", "period": 604800, "label": "route53-inventory" } ],
@@ -1518,13 +1534,14 @@ Resources:
                   [ "...", "${pResourcePrefix}-cloudfront-inventory", { "stat": "Maximum", "period": 60, "label": "cloudfront-inventory" } ],
                   [ "...", "${pResourcePrefix}-cloudtrail-inventory", { "stat": "Maximum", "period": 60, "label": "cloudtrail-inventory" } ],
                   [ "...", "${pResourcePrefix}-cw-alarm-inventory", { "stat": "Maximum", "period": 60, "label": "cw-alarm-inventory" } ],
+                  [ "...", "${pResourcePrefix}-ddb-inventory", { "stat": "Maximum", "period": 60, "label": "ddb-inventory" } ],
                   [ "...", "${pResourcePrefix}-dx-inventory", { "stat": "Maximum", "period": 60, "label": "dx-inventory" } ],
                   [ "...", "${pResourcePrefix}-ebs-vol-inventory", { "stat": "Maximum", "period": 60, "label": "ebs-vol-inventory" } ],
                   [ "...", "${pResourcePrefix}-ebs-snap-inventory", { "stat": "Maximum", "period": 60, "label": "ebs-snap-inventory" } ],
                   [ "...", "${pResourcePrefix}-ecr-inventory", { "stat": "Maximum", "period": 60, "label": "ecr-inventory" } ],
                   [ "...", "${pResourcePrefix}-ecs-inventory", { "stat": "Maximum", "period": 60, "label": "ecs-inventory" } ],
-                  [ "...", "${pResourcePrefix}-eks-inventory", { "stat": "Sum", "period": 60, "label": "eks-inventory" } ],
-                  [ "...", "${pResourcePrefix}-elasticbeanstalk-inventory", { "stat": "Sum", "period": 60, "label": "elasticbeanstalk-inventory" } ],
+                  [ "...", "${pResourcePrefix}-eks-inventory", { "stat": "Maximum", "period": 60, "label": "eks-inventory" } ],
+                  [ "...", "${pResourcePrefix}-elasticbeanstalk-inventory", { "stat": "Maximum", "period": 60, "label": "elasticbeanstalk-inventory" } ],
                   [ "...", "${pResourcePrefix}-elb-inventory", { "stat": "Maximum", "period": 60, "label": "elb-inventory" } ],
                   [ "...", "${pResourcePrefix}-eni-inventory", { "stat": "Maximum", "period": 60, "label": "eni-inventory" } ],
                   [ "...", "${pResourcePrefix}-es-inventory", { "stat": "Maximum", "period": 60, "label": "es-inventory" } ],
@@ -1534,10 +1551,10 @@ Resources:
                   [ "...", "${pResourcePrefix}-ia2-analyzer-inventory", { "stat": "Maximum", "period": 60, "label": "ia2-analyzer-inventory" } ],
                   [ "...", "${pResourcePrefix}-ia2-org-findings", { "stat": "Maximum", "period": 60, "label": "ia2-org-findings" } ],
                   [ "...", "${pResourcePrefix}-costexplorer", { "stat": "Maximum", "period": 60, "label": "costexplorer" } ],
-                  [ "...", "${pResourcePrefix}-iam-role-inventory", { "stat": "Sum", "period": 60, "label": "iam-role-inventory" } ],
-                  [ "...", "${pResourcePrefix}-iam-saml-inventory", { "stat": "Sum", "period": 60, "label": "iam-saml-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-role-inventory", { "stat": "Maximum", "period": 60, "label": "iam-role-inventory" } ],
+                  [ "...", "${pResourcePrefix}-iam-saml-inventory", { "stat": "Maximum", "period": 60, "label": "iam-saml-inventory" } ],
                   [ "...", "${pResourcePrefix}-iam-user-inventory", { "stat": "Maximum", "period": 60, "label": "iam-user-inventory" } ],
-                  [ "...", "${pResourcePrefix}-cred-report-inventory", { "stat": "Sum", "period": 60, "label": "cred-report-inventory" } ],
+                  [ "...", "${pResourcePrefix}-cred-report-inventory", { "stat": "Maximum", "period": 60, "label": "cred-report-inventory" } ],
                   [ "...", "${pResourcePrefix}-instances-sg-inventory", { "stat": "Maximum", "period": 60, "label": "instances-securitygroups-inventory" } ],
                   [ "...", "${pResourcePrefix}-kms-inventory", { "stat": "Maximum", "period": 60, "label": "kms-inventory" } ],
                   [ "...", "${pResourcePrefix}-lambdas-inventory", { "stat": "Maximum", "period": 60, "label": "lambdas-inventory" } ],
@@ -1550,7 +1567,7 @@ Resources:
                   [ "...", "${pResourcePrefix}-secrets-inventory", { "stat": "Maximum", "period": 60, "label": "secrets-inventory" } ],
                   [ "...", "${pResourcePrefix}-shield-inventory", { "stat": "Maximum", "period": 60, "label": "shield-inventory" } ],
                   [ "...", "${pResourcePrefix}-ssm-inventory", { "stat": "Maximum", "period": 60, "label": "ssm-inventory" } ],
-                  [ "...", "${pResourcePrefix}-storage-gateway-inventory", { "stat": "Sum", "period": 60, "label": "storage-gateway-inventory" } ],
+                  [ "...", "${pResourcePrefix}-storage-gateway-inventory", { "stat": "Maximum", "period": 60, "label": "storage-gateway-inventory" } ],
                   [ "...", "${pResourcePrefix}-support-inventory", { "stat": "Maximum", "period": 60, "label": "support-inventory" } ],
                   [ "...", "${pResourcePrefix}-ta-inventory", { "stat": "Maximum", "period": 60, "label": "ta-inventory" } ],
                   [ "...", "${pResourcePrefix}-trigger-inventory", { "stat": "Maximum", "period": 60, "label": "trigger-inventory" } ],
