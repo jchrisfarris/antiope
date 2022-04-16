@@ -73,15 +73,26 @@ def discover_firehose(target_account, region):
     firehoses = []
     client = target_account.get_client('firehose', region=region)
     response = client.list_delivery_streams()
-    while 'HasMoreDeliveryStreams' in response and response['HasMoreDeliveryStreams'] is True:  # Gotta Catch 'em all!
-        firehoses += response['DeliveryStreamNames']
+    while response['HasMoreDeliveryStreams'] == True:  # Gotta Catch 'em all!
+        for firehose in response["DeliveryStreamNames"]:
+            firehoses.append(firehose)
         response = client.list_delivery_streams(ExclusiveStartDeliveryStreamName=response['DeliveryStreamNames'][-1])
-    firehoses += response['DeliveryStreamNames']
+    for firehose in response["DeliveryStreamNames"]:
+        firehoses.append(firehose)
 
     logger.debug(f"Discovered {len(firehoses)} Firehose Delivery Streams in {target_account.account_name}")
 
     for firehose_name in firehoses:
         delivery_stream = client.describe_delivery_stream(DeliveryStreamName=firehose_name)['DeliveryStreamDescription']
+        tags = []
+        tag_response = client.list_tags_for_delivery_stream(DeliveryStreamName=firehose_name)
+        while tag_response.get("HasMoreTags") == True:
+            for tag in tag_response.get("Tags"):
+                tags.append(tag)
+            # ExclusiveStartTagKey (string) -- The key to use as the starting point for the list of tags.
+            tag_response = client.list_tags_for_delivery_stream(DeliveryStreamName=firehose_name, ExclusiveStartTagKey=tag_response.get("Tags")[-1].get("Key"))
+        for tag in tag_response.get("Tags"):
+                tags.append(tag)
 
         resource_item = {}
         resource_item['awsAccountId']                   = target_account.account_id
@@ -98,6 +109,7 @@ def discover_firehose(target_account, region):
         resource_item['resourceName']                   = delivery_stream['DeliveryStreamName']
         resource_item['ARN']                            = delivery_stream['DeliveryStreamARN']
         resource_item['errors']                         = {}
+        resource_item['Tags']                           = tags
 
         save_resource_to_s3(FIREHOSE_PATH, resource_item['resourceId'], resource_item)
 
