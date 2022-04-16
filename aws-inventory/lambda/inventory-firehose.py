@@ -94,6 +94,7 @@ def discover_firehose(target_account, region):
         delivery_stream = client.describe_delivery_stream(DeliveryStreamName=firehose_name)['DeliveryStreamDescription']
         tags = []
         tag_response = client.list_tags_for_delivery_stream(DeliveryStreamName=firehose_name)
+        logger.info(tag_response)
         while tag_response.get("HasMoreTags") == True:
             for tag in tag_response.get("Tags"):
                 tags.append(tag)
@@ -101,6 +102,7 @@ def discover_firehose(target_account, region):
             tag_response = client.list_tags_for_delivery_stream(DeliveryStreamName=firehose_name, ExclusiveStartTagKey=tag_response.get("Tags")[-1].get("Key"))
         for tag in tag_response.get("Tags"):
                 tags.append(tag)
+        logger.info(tags)
 
         resource_item = {}
         resource_item['awsAccountId']                   = target_account.account_id
