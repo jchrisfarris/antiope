@@ -73,7 +73,7 @@ def discover_firehose(target_account, region):
     firehoses = []
     client = target_account.get_client('firehose', region=region)
     response = client.list_delivery_streams()
-    while response['HasMoreDeliveryStreams'] == True:  # Gotta Catch 'em all!
+    while response['HasMoreDeliveryStreams'] is True:  # Gotta Catch 'em all!
         for firehose in response["DeliveryStreamNames"]:
             firehoses.append(firehose)
         response = client.list_delivery_streams(ExclusiveStartDeliveryStreamName=response['DeliveryStreamNames'][-1])
