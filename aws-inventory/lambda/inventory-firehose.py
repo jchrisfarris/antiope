@@ -78,7 +78,7 @@ def discover_firehose(target_account, region):
     except ClientError as error:
         logger.error(error)
     logger.info(response)
-    while response['HasMoreDeliveryStreams'] is True:  # Gotta Catch 'em all!
+    while response['HasMoreDeliveryStreams'] == True:  # Gotta Catch 'em all!
         for firehose in response["DeliveryStreamNames"]:
             firehoses.append(firehose)
         try:
@@ -87,8 +87,8 @@ def discover_firehose(target_account, region):
             logger.error(error)
     for firehose in response["DeliveryStreamNames"]:
         firehoses.append(firehose)
-
-    logger.debug(f"Discovered {len(firehoses)} Firehose Delivery Streams in {target_account.account_name}")
+    logger.info(firehoses)
+    logger.info(f"Discovered {len(firehoses)} Firehose Delivery Streams in {target_account.account_name}")
 
     for firehose_name in firehoses:
         delivery_stream = client.describe_delivery_stream(DeliveryStreamName=firehose_name)['DeliveryStreamDescription']
