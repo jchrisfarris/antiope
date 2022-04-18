@@ -76,6 +76,7 @@ def discover_firehose(target_account, region):
         response = client.list_delivery_streams()
     except ClientError as error:
         logger.error(error)
+        raise ClientError
     while response['HasMoreDeliveryStreams'] == True:  # Gotta Catch 'em all!
         for firehose in response["DeliveryStreamNames"]:
             firehoses.append(firehose)
@@ -83,6 +84,7 @@ def discover_firehose(target_account, region):
             response = client.list_delivery_streams(ExclusiveStartDeliveryStreamName=response['DeliveryStreamNames'][-1])
         except ClientError as error:
             logger.error(error)
+            raise ClientError
     for firehose in response["DeliveryStreamNames"]:
         firehoses.append(firehose)
     logger.info(f"Discovered {len(firehoses)} Firehose Delivery Streams in {target_account.account_name}")
@@ -114,9 +116,8 @@ def discover_firehose(target_account, region):
         resource_item['resourceName']                   = delivery_stream['DeliveryStreamName']
         resource_item['ARN']                            = delivery_stream['DeliveryStreamARN']
         resource_item['errors']                         = {}
-        resource_item['tags']                           = tags
+        resource_item['tags']                           = parse_tags(tags)
 
-        logger.info(resource_item)
         save_resource_to_s3(FIREHOSE_PATH, resource_item['resourceId'], resource_item)
 
 
