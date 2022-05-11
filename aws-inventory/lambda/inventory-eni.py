@@ -87,9 +87,10 @@ def discover_enis(account, region):
 
     for eni in interfaces:
 
-        # Don't save ENIs that already exist. They don't change much.
-        if eni_exists(RESOURCE_PATH, eni['NetworkInterfaceId'], s3client):
-            continue
+        if 'inventory_new_eni_only' in message and message['inventory_new_eni_only'] == True:
+            # Don't save ENIs that already exist. They don't change much.
+            if eni_exists(RESOURCE_PATH, eni['NetworkInterfaceId'], s3client):
+                continue
 
         resource_item['configurationItemCaptureTime']   = str(datetime.datetime.now())
         resource_item['configuration']                  = eni
