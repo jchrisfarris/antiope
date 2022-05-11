@@ -122,6 +122,17 @@ def process_lambda(client, mylambda, target_account, region):
             resource_item['errors']['Policy'] = message
             logger.warning(message)
 
+    # Add support for Function URLs
+    try:
+        response = client.get_function_url_config(FunctionName=mylambda['FunctionArn'])
+        resource_item['supplementaryConfiguration']['FunctionUrlConfig'] = response
+    except ClientError as e:
+        if e.response['Error']['Code'] != "ResourceNotFoundException":
+            # There is none, and that's to be expected.
+            pass
+        else:
+            raise
+
     tags = fetch_tags(client, mylambda['FunctionArn'])
     if tags is None:
         resource_item['errors']['no_tags'] = True
