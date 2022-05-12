@@ -209,6 +209,7 @@ Resources:
       LayerName: !Sub "${AWS::StackName}-aws-layer"
       CompatibleRuntimes:
         - python3.6
+        - python3.9
       Content:
         S3Bucket: !Ref pBucketName
         S3Key: !Ref pAWSLambdaLayerPackage
@@ -393,7 +394,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-load-sf-event"
       Description: Load the StepFunction Event from S3
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Policies:
       - AWSLambdaBasicExecutionRole
       - Version: '2012-10-17'
@@ -606,7 +607,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-dump-errors"
       Description: Dump the Error Queue at the end of the run
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 180
       MemorySize: 1024
       Policies:

@@ -15,7 +15,7 @@
 
 ifndef pythonver
 # $(error env is not set)
-    pythonver ?= python3.6
+    pythonver ?= python3.9
 endif
 
 ifndef BUCKET

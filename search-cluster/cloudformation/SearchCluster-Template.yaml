@@ -274,7 +274,7 @@ Resources:
       FunctionName: !Sub "${pResourcePrefix}-ingest-s3"
       Description: AWS Lamdba to pull data from S3 to index into Elasticsearch
       Handler: !If [ SNS2SQS, ingest_sns_sqs.lambda_handler, ingest_sqs_direct.lambda_handler ]
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: !If [ ReIndex, 900, 180]
       MemorySize: 768
       # ES queue is 200, BatchSize is 10, so 20 concurrent lambda would max the queue.
