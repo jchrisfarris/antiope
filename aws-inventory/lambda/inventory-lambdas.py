@@ -127,7 +127,7 @@ def process_lambda(client, mylambda, target_account, region):
         response = client.get_function_url_config(FunctionName=mylambda['FunctionArn'])
         resource_item['supplementaryConfiguration']['FunctionUrlConfig'] = response
     except ClientError as e:
-        if e.response['Error']['Code'] != "ResourceNotFoundException":
+        if e.response['Error']['Code'] == "ResourceNotFoundException":
             # There is none, and that's to be expected.
             pass
         else:

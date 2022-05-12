@@ -41,7 +41,7 @@ def lambda_handler(event, context):
     try:
         target_account = AWSAccount(message['account_id'])
         for r in target_account.get_regions():
-            discover_enis(target_account, r)
+            discover_enis(target_account, r, message)
 
     except AntiopeAssumeRoleError as e:
         logger.error("Unable to assume role into account {}({})".format(target_account.account_name, target_account.account_id))
@@ -59,7 +59,7 @@ def lambda_handler(event, context):
         raise
 
 
-def discover_enis(account, region):
+def discover_enis(account, region, message):
     '''
         Queries AWS to gather up the public IP addresses and stores them in DynamoDB
         Will Return an array of objects put in the table

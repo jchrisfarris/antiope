@@ -116,12 +116,19 @@ def process_role(role, account, iam_client):
     resource_item['resourceCreationTime']           = role['CreateDate']
     resource_item['errors']                         = {}
 
-    # Fetch the policies attached to this role
-    response = iam_client.list_role_policies(RoleName=role['RoleName']) # FIXME Paganation can occur.
-    resource_item['supplementaryConfiguration']['PolicyNames'] = response['PolicyNames']
 
-    response = iam_client.list_attached_role_policies(RoleName=role['RoleName']) # FIXME Paganation can occur.
-    resource_item['supplementaryConfiguration']['AttachedPolicies'] = response['AttachedPolicies']
+    try:
+        # Fetch the policies attached to this role
+        response = iam_client.list_role_policies(RoleName=role['RoleName']) # FIXME Paganation can occur.
+        resource_item['supplementaryConfiguration']['PolicyNames'] = response['PolicyNames']
+
+        response = iam_client.list_attached_role_policies(RoleName=role['RoleName']) # FIXME Paganation can occur.
+        resource_item['supplementaryConfiguration']['AttachedPolicies'] = response['AttachedPolicies']
+    except ClientError as e:
+        if e.response['Error']['Code'] == "NoSuchEntity":
+            resource_item['errors']['other'] = str(e)
+        else:
+            raise
 
     try:
         response = iam_client.list_role_tags(RoleName=role['RoleName'])

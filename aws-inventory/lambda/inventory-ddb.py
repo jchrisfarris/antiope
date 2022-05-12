@@ -76,7 +76,7 @@ def discovery_dbb_tables(target_account, region):
     while 'LastEvaluatedTableName' in response:  # Gotta Catch 'em all!
         for table in response.get("TableNames"):
             ddb_table_list.append(table)
-        response = ddb_client.list_tables(LastEvaluatedTableName=response.get("LastEvaluatedTableName"))
+        response = ddb_client.list_tables(ExclusiveStartTableName=response.get("LastEvaluatedTableName"))
     for table in response.get("TableNames"):
         ddb_table_list.append(table)
     for table in ddb_table_list:
@@ -98,7 +98,7 @@ def discovery_dbb_tables(target_account, region):
             "errors":                       {},
             "tags":                         ddb_tags
         }
-    
+
 
         save_resource_to_s3(RESOURCE_PATH, resource_item['resourceId'], resource_item)
 
