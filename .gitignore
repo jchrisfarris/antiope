@@ -28,23 +28,6 @@ config.*
 
 aws-inventory/lambda/antiope/*
 
-
-# Build-time crud for the search cluster lambda
-search-cluster/*/*dist-info
-search-cluster/*/*.zip
-search-cluster/*/urllib3*
-search-cluster/*/requests*
-search-cluster/*/lib/
-search-cluster/*/chardet/
-search-cluster/*/certifi/
-search-cluster/*/idna/
-search-cluster/*/bin/
-search-cluster/*/*.rst
-search-cluster/*/LICENSE
-search-cluster/*/NOTICE
-search-cluster/*/elasticsearch5/
-search-cluster/*/elasticsearch/
-
 # Build-time crud for the inventory lambda
 lambda_layer/python/
 

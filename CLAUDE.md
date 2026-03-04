@@ -245,7 +245,6 @@ The `make deps` command installs requirements.txt and the antiope module into th
 Main templates in `cloudformation/`:
 - `antiope-Template.yaml` - Top-level stack orchestrating nested stacks
 - `antiope-bucket-Template.yaml` - S3 bucket with proper permissions
-- `SplunkHEC-Template.yaml` - Optional Splunk integration
 
 Nested stack templates:
 - `aws-inventory/cloudformation/Inventory-Template.yaml` - All inventory lambdas and Step Functions

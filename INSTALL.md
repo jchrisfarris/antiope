@@ -69,7 +69,7 @@ Custom Stack code should be part of your [Antiope-Local](https://github.com/jchr
 3. Verify things look healthy in the [dashboard](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=antiope-prod)
 
 TODO - Log Expiration
-In the aws-inventory and search-cluster directories, the `make expire-logs env=prod` command will set a 5 day retention period for the CloudWatch logs for the lambda. Otherwise the retention is indefinite.
+In the aws-inventory directories, the `make expire-logs env=prod` command will set a 5 day retention period for the CloudWatch logs for the lambda. Otherwise the retention is indefinite.
 
 
 ## Other Make Targets (for development)

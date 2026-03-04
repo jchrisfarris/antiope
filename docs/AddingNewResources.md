@@ -7,8 +7,6 @@
 2. Add the function to the Dashboard in the CFT
 3. Add the filename to the FILES= list in the aws-inventory/lambda/Makefile
 4. Add the function name to the FUNCTIONS= list in the aws-inventory/Makefile
-5. If any special Elastic Search mapping is needed, create the mapping in search-cluster/mappings
-6. Add any new resource type created to INDICES= in search-cluster/scripts/post-deploy.sh
 7. Create the index(es) in ES before deploying the function (otherwise the custom or default Antiope mapping won't be present when the first document is indexed)
 
 
