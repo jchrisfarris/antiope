@@ -85,7 +85,7 @@ Conditions:
 
 Globals:
   Function:
-    Runtime: python3.6
+    Runtime: python3.13
     MemorySize: !Ref pDefaultLambdaSize
     Timeout: !Ref pMaxLambdaDuration
     Layers:

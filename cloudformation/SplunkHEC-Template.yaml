@@ -164,7 +164,7 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}-push-to-splunk"
       Description: AWS Lamdba to pull data from S3 to index into Splunk
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.13
       Timeout: 180
       MemorySize: 1024
       Role: !GetAtt IngestLambdaRole.Arn
