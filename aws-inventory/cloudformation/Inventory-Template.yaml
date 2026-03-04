@@ -374,21 +374,6 @@ Resources:
           Properties:
             Topic: !Ref TriggerAccountInventoryFunctionTopic
 
-  WorklinkInventoryLambdaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub "${pResourcePrefix}-worklink-inventory"
-      Description: AWS Lamdba to discover Worklink configurations
-      Handler: inventory-worklink.lambda_handler
-      Role: !GetAtt InventoryLambdaRole.Arn
-      CodeUri: ../lambda
-      Events:
-        AccountInventoryTrigger:
-          Type: SNS
-          Properties:
-            Topic: !Ref TriggerAccountInventoryFunctionTopic
-
-
   ENIInventoryLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -1226,7 +1211,6 @@ Resources:
                   [ "...", "${pResourcePrefix}-vpc-inventory", { "stat": "Sum", "period": 604800, "label": "vpc-inventory" } ],
                   [ "...", "${pResourcePrefix}-transit-gw-inventory", { "stat": "Sum", "period": 604800, "label": "transit-gateway-inventory" } ],
                   [ "...", "${pResourcePrefix}-waf-inventory", { "stat": "Sum", "period": 604800, "label": "waf-inventory" } ],
-                  [ "...", "${pResourcePrefix}-worklink-inventory", { "stat": "Sum", "period": 604800, "label": "worklink-inventory" } ],
                   [ "...", "${pResourcePrefix}-client-vpn-inventory", { "stat": "Sum", "period": 604800, "label": "client-vpn-inventory" } ],
                   [ "...", "${pResourcePrefix}-get-billing-data", { "stat": "Sum", "period": 604800, "label": "get-billing-data" } ],
                   [ "...", "${pResourcePrefix}-new_account_handler", { "stat": "Sum", "period": 604800, "label": "new_account_handler" } ],
@@ -1288,7 +1272,6 @@ Resources:
                   [ "...", "${pResourcePrefix}-vpc-inventory", { "stat": "Sum", "period": 604800, "label": "vpc-inventory" } ],
                   [ "...", "${pResourcePrefix}-transit-gw-inventory", { "stat": "Sum", "period": 604800, "label": "transit-gateway-inventory" } ],
                   [ "...", "${pResourcePrefix}-waf-inventory", { "stat": "Sum", "period": 604800, "label": "waf-inventory" } ],
-                  [ "...", "${pResourcePrefix}-worklink-inventory", { "stat": "Sum", "period": 604800, "label": "worklink-inventory" } ],
                   [ "...", "${pResourcePrefix}-client-vpn-inventory", { "stat": "Sum", "period": 604800, "label": "client-vpn-inventory" } ],
                   [ "...", "${pResourcePrefix}-get-billing-data", { "stat": "Sum", "period": 604800, "label": "get-billing-data" } ],
                   [ "...", "${pResourcePrefix}-new_account_handler", { "stat": "Sum", "period": 604800, "label": "new_account_handler" } ],
@@ -1350,7 +1333,6 @@ Resources:
                   [ "...", "${pResourcePrefix}-vpc-inventory", { "stat": "Sum", "period": 900, "label": "vpc-inventory" } ],
                   [ "...", "${pResourcePrefix}-transit-gw-inventory", { "stat": "Sum", "period": 900, "label": "transit-gateway-inventory" } ],
                   [ "...", "${pResourcePrefix}-waf-inventory", { "stat": "Sum", "period": 900, "label": "waf-inventory" } ],
-                  [ "...", "${pResourcePrefix}-worklink-inventory", { "stat": "Sum", "period": 900, "label": "worklink-inventory" } ],
                   [ "...", "${pResourcePrefix}-client-vpn-inventory", { "stat": "Sum", "period": 900, "label": "client-vpn-inventory" } ],
                   [ "...", "${pResourcePrefix}-get-billing-data", { "stat": "Sum", "period": 900, "label": "get-billing-data" } ],
                   [ "...", "${pResourcePrefix}-new_account_handler", { "stat": "Sum", "period": 900, "label": "new_account_handler" } ],
